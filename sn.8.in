@@ -1,0 +1,250 @@
+.TH sn,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+sn \- The sn news system.
+.SH DESCRIPTION
+If you think of a news spool as a black box, then
+.B sn
+is a bunch of programs to put articles in the box
+.RB ( snstore ),
+to view articles in it
+.RB ( snntpd ,
+.BR sncat ),
+remove old articles
+.RB ( snexpire , sncancel ),
+generate a list of what's in it
+.RB ( snscan,
+.BR snprimedb ),
+or display that list
+.RB ( sndumpdb ).
+In addition it can go find the articles to put in the box
+.RB ( snget ).
+
+The
+.B sn
+system is designed for small sites, spooling a few dozen to a
+few hundred newsgroups.  It is not meant for sites carrying a full
+news feed.
+.B sn
+is suitable as a replacement for
+.B leafnode
+(ftp.troll.no, by Arnt Gulbrandsen).  It doesn't have
+.BR leafnode 's
+intelligence when it comes to retrieving upstream articles, but
+is less demanding on the filesystem and takes up less disk space.
+
+.B sn
+supports local news groups.
+
+.B sn
+tries to create
+.I aliases
+for crossposts instead of storing the article multiple times.
+
+.B sn
+can compress articles to save disk space.  Compressing and
+uncompressing take place transparently.
+
+.B sn
+doesn't use configuration files.  Instead, you write small shell
+scripts to customize
+.BR sn 's
+behaviour.
+
+.SH REQUIREMENTS
+.B sn
+has been tested only against Linux ver. 2.0.  It makes heavy use
+of mmap(2) in MAP_SHARED and MAP_WRITE mode, so it won't work on
+pre-1.3.45 or so.  I (harold-sn@nb.com.sg) am interested in bug
+reports, comments, and suggestions.
+
+.SH NEWS SPOOL STRUCTURE
+The news spool is
+.IR !!SNROOT!! ,
+which all
+.B sn
+programs need in order to run.
+It contains the group directories in
+.IR news . group . name
+format rather than the traditional
+.IR news / group / name .
+Each such directory contains article files, named serially from
+.BR 1 ,
+.BR 2 ,
+etc.  Each article file consists of up to 10 articles, which reduces
+the number of files and inodes required.
+These article files are mmap(2)ed before use, and they are cached to
+reduce search time.
+.B sn
+tries to keep the headers of these articles bunched together,
+to reduce the memory footprint.
+
+In addition to the article files, each newsgroup directory also
+contains files which control the behaviour of the
+.B sn
+system.  All control files have filenames beginning with a dot, and
+they all reside in the group directory in which they are to have
+effect.
+In particular, if the group directory does not have a
+subdirectory
+.I .outgoing
+in it, it is considered a local news group.
+
+.SH BUGS
+When retrieving articles,
+there is a window of time between when an article is first marked as
+wanted and when it is committed to the news spool.  Within this
+window it is possible to have the same article committed by a
+separate process.  This defeats the aliasing feature so you could
+end up with more than one copy of an identical article.
+
+The ID database will only store one instance of an articles
+{ID,group,serial} tuple.  After the second copy is committed to
+the spool,
+.B snstore
+will try to commit it in the ID database, and will fail.  So it is
+possible that after the article has been expired, another copy will
+still remain, but be inaccessible if requested by its ID.
+
+.B sn
+doesn't sync the ID database after each write, so it could get
+corrupted.  If you suspect it is corrupted, delete the files
+.RI !!SNROOT!!/ .table ,
+.RI !!SNROOT!!/ .chain ,
+and
+.RI !!SNROOT!!/ .newsgroup ,
+making sure
+.B snntpd
+and
+.B snget
+aren't running or scheduled to do so.
+Then run
+.br
+cd !!SNROOT!!; snscan -n * |snprimedb
+.br
+This will recreate the ID database.
+
+.SH PROGRAMS
+.TP
+.B sncat
+prints out the specified articles.  This is useful if you want to
+transport the spool to another system.
+
+.TP
+.B sndumpdb
+dumps the ID database.  It is not normally used.
+
+.TP
+.B snexpire
+expires articles in the spool.
+
+.TP
+.B snfetch
+is the back end of the article fetcher.  You can use
+.B suck
+(a separate package) instead.
+
+.TP
+.B snget
+is the front end of the article fetcher.
+
+.TP
+.B snmail
+converts a normal email message into a news article.  It can be used
+to turn a mailing list into a local newsgroup.
+
+.TP
+.B snnewgroup
+is a script to create newsgroup directories.
+
+.TP
+.B sndelgroup
+is a script to delete newsgroup directories and flush the ID
+database of references to those articles.
+
+.TP
+.B snntpd
+is the news server (an nnrpd).
+
+.TP
+.B snprimedb
+feeds the ID database from formatted standard input.  This database
+is what permits articles to be specified by their ID.  This program
+is not used in normal operation.
+
+.TP
+.B snscan
+scans the specified articles and outputs a line consisting of the
+article's ID, newsgroup, and serial number within the newsgroup.
+This output is suitable for feeding to
+.BR snprimedb .
+This program is not used in normal operation.
+
+.TP
+.B snsend
+takes articles on standard input and distributes them according to
+the type of newsgroup.
+
+.TP
+.B snstore
+Like
+.BR snsend ,
+but considers all newsgroups as local, so stores all articles
+locally only.
+
+.TP
+.B sncancel
+cancels articles, so they are no longer available locally.
+
+.SH CONVENTIONS
+
+.TP
+.B Exit codes
+All
+.B sn
+programs exit 0 on success,
+.I 1
+on invocation error;
+.I 2
+on system error;
+.I 3
+on format or protocol error.  Other exit codes are possible.
+
+.TP
+.B Options
+.B sn
+programs take
+.RI - d
+to enable verbose messages (may be repeated), and
+.RI - V ,
+which displays the version and exits.  Where a network timeout is
+appropriate, this is specified with
+.RI - t\ timeout ,
+in seconds.
+.RI - P
+indicates the pid should be included in any status output.
+Other options are possible.
+
+.TP
+.B Environment
+.B sn
+programs will take the contents of the
+.B SNROOT
+environment variable as the news spool rather than !!SNROOT!!.  If a
+program will need to run another, it appends !!BINDIR!! to its
+.B PATH
+variable if !!BINDIR!! is not already present.
+
+.SH SEE ALSO
+.BR sncat (8),
+.BR sndumpdb (8),
+.BR snexpire (8),
+.BR snfetch (8),
+.BR snget (8),
+.BR snmail (8),
+.BR snnewgroup (8),
+.BR sndelgroup (8),
+.BR snntpd (8),
+.BR snprimedb (8),
+.BR snscan (8),
+.BR snstore (8),
+.BR snsend (8)

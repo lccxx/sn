@@ -1,0 +1,104 @@
+#!/bin/sh
+# ----------------------------------------------------------------------
+# snnewgroups - check for new groups and add them to the sn news server
+#
+# This script checks for new groups on the upstream news servers, using
+# the NEWGROUPS NNTP command. When a server is checked for the first
+# time, the complete group list is downloaded with LIST ACTIVE. The
+# following files in each .outgoing/<server>:<port>/ directory are used:
+#
+#   .newgroups-stamp	- time stamp for the NEWGROUPS command
+#   .newgroups-filter	- newsgroup filter patterns
+#
+# The pattern file should contain one newsgroup name pattern per line,
+# preceded by either '+' or '-'. A '+' selects matching group names, and
+# a '-' deselects matching group names. The first match takes precedence.
+# The pattern matching follows the Bourne shell rules for pattern matching.
+# To avoid surprises, a server is skipped when the pattern file is missing.
+#
+# Any missing group description files (.info) are created automatically.
+#
+# 2003-03-03, Dick Streefland <dicks@xs4all.nl>
+# ----------------------------------------------------------------------
+
+stamp=.newgroups-stamp
+filter=.newgroups-filter
+
+tmp=/tmp/infogroups.$$
+trap "rm -f $tmp" 0
+
+cd ${SNROOT:-/var/spool/sn} || exit 1
+
+for	dir in .outgoing/*:*
+do
+	server=${dir#.outgoing/}
+	server=${server%:*}
+	port=${dir#*:}
+
+	# --- get the group selection patterns
+	test -f $dir/$filter || continue
+	patt=`sed -n 's/^\([-+]\) *\(.*\)/\2)m=\1;;/p' $dir/$filter`
+
+	# --- first, create the new time stamp to avoid missing new groups
+	old=$dir/$stamp
+	new=$dir/$stamp.new
+	rm -f $new
+	touch $new || exit 1
+	chown news.news $new > /dev/null 2>&1
+
+	# --- get the new groups, or get all groups the first time
+	if	[ -f $old ]
+	then
+		cmd="NEWGROUPS `date -u -r $old '+%y%m%d %H%M%S GMT'`"
+	else
+		cmd="LIST ACTIVE"
+	fi
+	echo -e "MODE READER\n$cmd\nquit" |
+	{ nc $server $port || rm $new ; } |
+	grep '^[a-z]' |
+	while	read group junk
+	do
+		m=-
+		eval case "\"$group\"" in $patt esac
+		case "$m" in +) echo "$group" ;; esac
+	done |
+	while	read group
+	do
+		if	[ ! -d "$group" ]
+		then
+			/usr/sbin/snnewgroup "$group" $server $port
+		fi
+	done
+	mv $new $old
+
+	# --- get missing group descriptions:
+	find * -lname "../$dir" -printf '%h\n' |
+	while	read group
+	do
+		[ -f "$group/.info" ] || echo "$group"
+	done |
+	head -99 > $tmp
+	if	[ -s $tmp ]
+	then
+		(
+			echo "MODE READER"
+			sed 's/^/LIST NEWSGROUPS /' $tmp
+			echo "QUIT"
+		) |
+		nc $server $port |
+		sed -n 's///; /^[a-z]/p' |
+		while	read group descr
+		do
+			echo "${descr:-?}" > $group/.info
+			chown news.news $group/.info > /dev/null 2>&1
+		done
+		while	read group
+		do
+			if	[ ! -f $group/.info ]
+			then
+				echo "?" > $group/.info
+				chown news.news $group/.info > /dev/null 2>&1
+			fi
+		done < $tmp
+	fi
+done

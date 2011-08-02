@@ -1,0 +1,33 @@
+.TH sndumpdb,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+sndumpdb \- dump contents of sn database.
+.SH SYNOPSIS
+.B sndumpdb
+(no arguments)
+.br
+.SH DESCRIPTION
+.B sndumpdb
+dumps the contents of the
+.B sn
+database (in no particular order) with one record per line,
+in the format
+.br
+.I newsgroup id serial
+.br
+where
+.I newsgroup
+is the newsgroup that article with message ID
+.I id
+can be found, with local serial number
+.IR serial .
+
+.SH ENVIRONMENT VARIABLES
+.TP
+.B SNROOT
+If this is set and is not empty, the value is used in place of
+.BR !!SNROOT!! ,
+the default news spool directory.
+
+.SH FILES
+The database files are
+.RI !!SNROOT!!/{ .table , .chain , .newsgroup }.

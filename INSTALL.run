@@ -1,0 +1,223 @@
+You have to be root or the owner of SNROOT to do anything
+listed here.  You should have already built and installed sn, see
+file INSTALL.  "SNROOT" and "PREFIX" refer to values as you have
+set in the Makefile.
+
+In the following, remember that (almost) every file and directory
+under and including SNROOT must be owned be the same user and group.
+(In some cases the owner may be root instead.)  sn won't complain
+about writeable files.
+
+1) Add newsgroups:
+
+   $ snnewgroup comp.os.linux.announce my.isps.server 119
+   $ snnewgroup alt.lemmings my.other.isps.server
+   $ snnewgroup local.private
+
+   119 is the default port number, and you can omit it.
+
+   If you leave out the news server address, the newsgroup will
+   get created as a local one.  (You can tell a global group by
+   the symlink news.group.name/.outgoing, which points somewhere
+   into one of SNROOT/.outgoing/*).  A local group doesn't have
+   an upstream feed; it gets articles when people post to it.
+   Each newsgroup has at most one upstream feed.
+
+   If my.isps.server on port PORT requires a username and password:
+   $ cd SNROOT/.outgoing/my.isps.server:PORT
+   $ echo my-username >username
+   $ echo my-password >password
+   $ chmod 600 username password
+
+   where PORT is the servers port number, usually 119.
+
+   You can add new newsgroups at any time.  The sn package won't
+   automatically create newsgroups for you.
+
+   man snnewgroup(8), sndelgroup(8).
+
+   Optionally request a list of newsgroups from your server, when
+   it connects.  "Optionally" because these lists are usually very
+   long.  If you do this, check your email after step 2.
+
+   $ echo 'mail me@myhost' >/SNROOT/.outgoing/my.isps.server:119/request-list
+
+   Replace "me@myhost" with your email address.  You can also replace
+   "mail me@myhost" with any other shell command that will read
+   data from standard input.  This file will be deleted when the
+   command runs successfully.
+   
+   (Later on you can get a list of new groups by putting the command in
+   request-newgroups instead.)
+
+2) If you've added any global newsgroups, fetch some news:
+
+   $ snget
+
+   snget will collect articles from the subscribed-to groups (as in
+   step 1) and store them under their respective group directories.
+   Status messages will be written to standard error.  On first run,
+   expect "out of sync" messages; this is normal.  If you expect
+   lots of articles you can use
+
+   $ snget -m 100
+
+   to limit it to 100 articles per newsgroup (the default is 200).
+   The -m option is useful only when priming the newsgroups.
+
+   man snget(8).
+
+3) Enable news reading via NNTP.
+   You can run snntpd under inetd/tcpd (most people will do this),
+   or under tcpserver. (Or any other program which will let you
+   connect a socket to stdin/stdout of snntpd.)
+
+   "logger ..." is used to store snntpd log messages, which means
+   the messages end up whereever /etc/syslog.conf says to put it.
+
+   The example access control policy here is to permit reading and
+   posting from local clients, and to deny all access to everyone
+   else.  The local network is assumed to be 192.168.9.0.  For more
+   complicated posting access control, see the PREFIX/sbin/SNPOST script,
+   which can do fine-grain control.  The coarse grain posting access
+   here is determined by the POSTING_OK environment variable.
+
+Running under inetd/tcpd:
+   In /etc/hosts.allow, insert a line:
+
+     nntpd : localhost, 192.168.9. : setenv = POSTING_OK
+
+   In /etc/hosts.deny, insert a line:
+
+     nntpd : ALL
+
+   See man 5 hosts_access for more complex configurations.  See man
+   snntpd for more on POSTING_OK.  NOTE: the "setenv" capability
+   is said to be unworkable in the tcpd that ships with certain
+   versions of the Red Hat Linux distribution.
+
+   Create a small shell wrapper for snntpd, call it "nntpd":
+
+   #!/bin/sh
+   # snntpd needs to find snstore if it is to accept news postings.
+   # Replace PREFIX with the real value of PREFIX from the Makefile.
+   PATH=PREFIX/sbin:$PATH
+   export PATH
+   # Enable posting?  Can also do this from /etc/hosts.allow
+   POSTING_OK=1; export POSTING_OK # yes
+   # No: unset POSTING_OK
+   # Run snntpd, and log errors in the system log:
+   PREFIX/sbin/snntpd /usr/bin/logger -p news.info
+   # Run snntpd, and log errors in a log file:
+   # PREFIX/sbin/snntpd 2>>/where/you/want/the/snntpd.log   
+   # End of wrapper script.
+
+   In /etc/inetd.conf, insert a line:
+
+   nntp stream tcp nowait root.root /path/to/tcpd /path/to/nntpd
+
+   You can change root.root to the owner and group of SNROOT;
+   however, snntpd always drops root.
+
+   Hup inetd and run your newsreader.  The news spool can be read
+   only via NNTP because of its unorthodox structure.
+
+   man snntpd(8), inetd(8), tcpd(8), hosts_access(5)
+
+Running under tcpserver:
+   If you're not running snntpd for the system, using tcpserver is
+   the simplest option.
+
+   Create the access control cdb file, for example:
+
+     tcprules news.cdb tmp.cdb <<HERE
+     192.168.9.:allow,POSTING_OK=''
+     :deny
+     HERE
+
+   man 1 tcprules for more on this file.
+   Run a command similar to one of the following, and place it
+   somewhere in your rc files when you're happy with it.
+   Do this as root or as the owner of SNROOT.
+
+   $ env - PATH=PREFIX/sbin:$PATH \
+     tcpserver -RHl0 -x news.cdb 0 nntp \
+       snntpd logger -p news.info &
+
+   If you're not running this for the system, use a different port
+   number, such as "1119" instead of "nntp".
+   
+   man tcpserver(1).
+
+4) Crontab entries.  The following refers to the crontab for root
+   or the owner of SNROOT.
+
+   A line similar to the following will expire old articles:
+
+   0 3 * * * cd SNROOT && PREFIX/sbin/snexpire *
+
+   man cron(8)/crond(8), crontab(1), crontab(5).
+
+5) You can fetch news automatically whenever you dial up.  If you're
+   using pppd, place a line in /etc/ppp/ip-up:
+
+   PREFIX/sbin/snget 2>&1 >/dev/null &
+
+   If you're worried about snget taking up all your bandwidth,
+   use the -h option to snget (see the man page) to throttle
+   its connection.
+
+   man snget(8), pppd(8).
+
+6) Tuning.  After some days or weeks of use, you can start tuning
+   the expiration:
+
+   $ echo '10d' >SNROOT/alt.lemmings/.expire
+
+   expires alt.lemmings in 10 days instead of the default of 7.
+   You can also say '2w' for 2 weeks, or '1m' for one month.
+
+   man snexpire(8).
+
+   If USE_ZLIB was set in the Makefile (this is the default),
+   you can enable compression on selected newsgroups, which by now
+   would be easy to identify:
+
+   $ touch /SNROOT/comp.source-code.big/.compress
+
+   says new articles entered in comp.source-code.big will be candidates
+   for compression.  Old articles won't be touched.  Compression and
+   decompression take place transparently.  (You can see if zlib was
+   compiled in: "ident snntpd |grep ZLIB").
+
+   man snstore(8).
+
+   Deny posting on a per-newsgroup basis:
+
+   $ touch /SNROOT/alt.usenet.noise.noise.noise/.nopost
+
+   This disallows posting (via "POST" NNTP command) for this group,
+   but permits new articles from it's upstream host.  Effectively
+   alt.usenet.noise.noise.noise becomes readonly to users.  See the
+   PREFIX/sbin/SNPOST script.
+
+   man snntpd(8).
+
+7) Boot script.
+
+   In one of your system rc scripts, after the filesystems have been
+   mounted and fsck has been run, execute the following:
+
+    cd SNROOT
+    rm .newsgroup .table .chain
+    find . -type f -name "+*" -exec rm -f {} \;
+    PREFIX/sbin/snprimedb -i
+    PREFIX/sbin/snscan -n * | PREFIX/sbin/snprimedb;
+
+    This ensures that sn's ID database is in sync with the news
+    spool.
+
+You can read INSTALL.notes for other ways to use sn.
+
+If you are having problems with sn, please read FAQ to see if your question
+has already been answered, before asking the mailing list for assistance.

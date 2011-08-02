@@ -1,0 +1,99 @@
+This file describes how sn works, how it was designed.  It probably
+won't interest anyone but a programmer.
+
+The precursor to sn was tn, from which the batching idea was
+hatched.  But sn is a complete rewrite.
+
+sn uses mmap heavily.  The idea is that if more than one snntpd
+process is running, they can share the same memory.  The advantage
+gained is probably quite small though, considering the number of
+files.
+
+sn uses caching heavily.  There is a separate cache module in
+cache.c, which can cache any kind of object pointer.  sn uses it
+to cache article files (art.c), newsgroup information (group.c),
+and time-stored information (time.c).  This strategy makes
+programming for the upper layers rather simpler, after the base
+methods are defined.
+
+The caching of article files for reading is mainly to help with
+aliasing.  Since the behaviour of news readers is to read each
+article head in quick succession, there is little to be gained
+from a large cache.  Cross posts tend to occur between newsgroups
+of similar content, so faulting in an aliased article file will
+save time, because that file may well be requested again soon.
+There is no provision for "faulting" ahead.
+
+An article file consists of an index, and following it, the heads
+and bodies of the articles.
+
+Whenever an article is to be stored, it is preferable to bunch all
+the heads together at the beginning of the file near the index,
+and the bodies after.  sn appends the head and the body both into
+the file the moment it is received.  Then when all slots are full,
+it rewrites the entire file so the heads are at the beginning.
+This strategy means the file spends much less time in an incosistent
+state, but at the expense of the time to write out a new file and
+rename it.  It also means that the storing process can be terminated
+at any time and still control the damage.
+
+This means non-full files are not in optimum format, but only the
+last file in a newsgroup will be non-full.
+
+snfetch doesn't lock a newsgroup when it runs.  I don't think this
+is a fair restriction to make.  The news spool should simply and
+readily accept any input from anywhere.
+
+Not locking means you can run any number of storage processes at
+a time.  If this is done, there is a danger of storing duplicate
+articles, since there is a window between when the ID is checked
+for existence, and when the article is committed to the spool.
+
+My decision to depart from the traditional /news/group/name/number
+structure was based on the observation that most modem users (for
+whom sn was designed) will not be interested in the tens of
+thousands of newsgroups available, but in only a few dozen at most.
+Keeping the directory structure simple made things easier for me.  I
+may consider hashing the newsgroup names into another level of
+directories in the future, but I don't think its important.  Being
+able to use '*' in shell scripts is awfully handy.
+
+The decision to keep control information in the group directory
+itself is in keeping with the general per-newsgroup structure of
+usenet.  The exception is upstream servers, which are not a strictly
+per-newsgroup sort of thing.  For this, I use a server directory
+for each server, and have each newsgroup maintain a symlink to it.
+This is the .outgoing file in each (global) newsgroup directory.
+I think this is far better than having a configuration file and
+parser (thanks djb), it lends itself well to automatic operation,
+and is also more obvious.
+
+Although the structure of usenet news centres around the
+newsgroup, there is also an important provision that articles be
+referenced by their ID.  As a result, it is necessary to somehow map
+article IDs to their location.
+
+Any dbm can do this, but I wrote my own for 2 reasons: I wanted
+multiple writers; and I wanted database information shared among all
+instances of processes with the database open.  This is accomplished
+using mmap(2) with MAP_SHARED.
+
+To keep things simple (for me), this database is a hash table
+using open chaining, and it cannot be resized.  There are 2 files
+for this, the index of the table, and the chains.  The index
+(.table) is just an array dumped to disk; the chain file (.chain)
+is an arena managed by a simple free-list allocator (allocate.c).
+This allocator maintains a linked list of every size of free object
+available, in increments of 4 bytes.  If the required size is not
+found on the appropriate free list, the file is extended and the
+new space returned.  The allocator doesn't know how to sweep and
+join, or split.  This means under certain degenerate conditions
+(like, everyone suddenly decides never again to use message IDs of
+84 bytes after having used them for months), the chain file could
+have large amounts of space in it that never get allocated.
+
+To keep things simple, I've kept the number of options per sn tool
+very low, and kept the function of each distinct.  I think its much
+better to combine these tools in unix fashion using shell scripts,
+than to confuse someone with multiple options.
+

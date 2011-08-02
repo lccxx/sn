@@ -1,0 +1,10 @@
+In the examples in INSTALL.run, you may want to run "snauth" instead
+of "snntpd ...". Snauth would only allow authorized users to read
+and will allow all authorized users to post (so you do not have
+to set POSTING_OK yourself). Snauth uses PAM for authentication -
+make sure your /etc/pam.d/sn is reasonable.
+
+To compile, move snauth.c to the main code directory, apply the patch
+(patch < contrib/pam_authentication/patch), and run "make".
+
+This code was written by Aleksey Nogin <aleksey@nogin.org>.

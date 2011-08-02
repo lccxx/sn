@@ -1,0 +1,225 @@
+.TH snsend,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+snsend \- distribute articles
+.br
+snstore \- store articles locally
+
+.SH SYNOPSIS
+.B snsend
+.RI [- rvcna ]
+.br
+.B snstore
+.RI [- rvcna ]
+
+.SH DESCRIPTION
+.B snsend
+reads articles from descriptor 0 and distributes each one
+into each newsgroup they are posted to, like
+.BR inews .
+.B snstore
+does the same but stores them all locally.
+The input articles are expected to be in wire format (lines end with CRLF,
+leading dots are doubled, and articles are terminated with a lone
+dot).
+
+Control messages are not treated specially.
+
+The newsgroups list is taken from the
+.B X-sn-Newsgroups
+field if it exists; otherwise it is taken from the
+.B Newsgroups
+field, which must exist or the article will be
+.BR junked .
+All fields whose names begin with
+.B X-sn-
+(case insensitive) are always removed.
+
+If
+.B Date
+or
+.B Message-ID
+are not present, these are created.
+The local hosts name is prepended to the
+.B Path
+field.
+
+If an article is to be
+.BR junked ,
+it is sent to the junk newsgroup if
+it exists, otherwise it is discarded.
+
+.SH ROUTING
+This applies only to
+.BR snsend .
+.B snstore
+does not route; it treats all
+.I news.groups
+as though they were local (see
+.B Nonexistent newsgroup
+and
+.B Local newsgroup
+below).
+If any of the following fails,
+.B snsend
+aborts:
+
+For each
+.I news.group
+an article is (cross-) posted to,
+.B snsend
+routes the article as follows, aborting if any action fails:
+
+.TP
+.B Nonexistent newsgroup
+If
+.RI !!SNROOT!!/ news.group
+is not a directory,
+.B snsend
+ignores this
+.IR news.group .
+If all
+.IR news.group s
+are thus ignored, the article is
+.BR junked .
+
+.TP
+.B Global newsgroup
+If
+.RI !!SNROOT!!/ news.group /.outgoing
+is a (symlink to a) directory,
+.B snsend
+stores the article into a file in that directory, if the same
+article does not already exist there (so
+.IR news.group 's
+upstream feed doesn't get multiple copies of the same article.)
+Such in-transit article files are given names that begin with a
+.B $
+sign.
+
+.TP
+.B Local processing via script
+Otherwise if
+.RI !!SNROOT!!/ news.group /.outgoing
+is a regular file, it is taken to be a script or program and is run
+with the article available on its input.  See
+.RB !!SNROOT!!/ dot-outgoing.ex .
+
+.TP
+.B Local processing via fifo
+Otherwise if
+.RI !!SNROOT!!/ news.group /.outgoing
+is a fifo, the article is written into it.  It is an error if
+nothing is reading the fifo.
+
+.TP
+.B Local newsgroup
+Otherwise if
+.RI !!SNROOT!!/ news.group /.outgoing
+does not exist, the article is stored into
+.IR news.group .
+
+.SH OPTIONS
+Options apply to
+.B snsend
+and
+.B snstore
+equally.
+
+.TP
+.RB - r
+The article stream is in rnews batch format, rather than wire
+format.  Only the
+.B #! rnews
+form is understood.
+.TP
+.RB - c
+If an article already exists in the local newsgroup it is destined
+for, don't store it there.  For
+.BR snsend ,
+this option has no effect on newsgroups
+that are not local.
+.TP
+.RB - a
+(Aliases not allowed.)
+When storing to multiple local newsgroups, do not alias subsequent
+copies to the first, instead, make a copy.  Aliasing saves disk
+space, but when the original expires, so do all aliases to it.
+This option has no effect on newsgroups that
+are not local.
+.TP
+.RB - n
+Don't actually do anything with the article, just dump it back onto
+descriptor 1.
+.TP
+.RB - v
+For each article stored in each newsgroup, output a line to
+descriptor 1 similar to what
+.B snscan
+would emit, except that for non-local newsgroups the serial number
+will always be 0.
+
+.SH FILES
+.TP
+.RI !!SNROOT!!/ news.group.name /
+This includes
+.RB !!SNROOT!!/ =junk
+newsgroup if it exists.
+Each such directory represents the newsgroup of the same name, and
+articles are stored in files
+.BR 1 ,
+.BR 2 ,
+.BR 3 ,
+etc. beneath it.  Each such file contains 1 or more articles.
+This is contrary to the traditional form of
+.RI !!SNROOT!!/ news / group / name .
+.IR news.group.name .
+.TP
+.RI !!SNROOT!!/ news.group /.outgoing
+See also
+.B ROUTING
+above.  The presence of this directory indicates that
+.I news.group
+is global, and articles posted to
+.I news.group
+end up here in files named
+.BR $ *.
+These files are linked in already complete, so all such files are
+ready to be uploaded.
+.TP
+.RI !!SNROOT!!/ news.group /.compress
+If this file exists, articles stored in
+.I news.group
+are candidates for compression.  The content of the file is a number
+representing a minimum article body size below which compression
+won't be applied.  If the file is empty this threshold defaults to
+1024 bytes.
+.TP
+.RB !!SNROOT!!/ .me
+If this file exists, it's contents are taken to be the local hosts
+name for purposes of the
+.B Path
+field.  Otherwise the name is obtained from
+.BR gethostname (2).
+
+.SH ENVIRONMENT VARIABLES
+See also
+.RB !!BINDIR!!/ dot-outgoing.ex
+for other variables exported when
+.B snsend
+invokes a .outgoing program.
+.TP
+.B SNROOT
+If this is set, its value is used in place of !!SNROOT!!.
+.SH EXIT CODES
+.B snsend
+and
+.B snstore
+exit 0 on success, 1 on usage error, 2 on system error, 3 on
+article format error, and 9 if
+.RI !!SNROOT!!/ news.group /.outgoing
+.RB ( snsend
+only) exits with other than 0.
+
+.SH SEE ALSO
+!!BINDIR!!/dot-outgoing.ex,
+snscan(1)

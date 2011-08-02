@@ -1,0 +1,17 @@
+I'm sending you a script that can be run as a cron job, to
+automatically subscribe to newsgroups, based on a pattern file. The
+patterns are used to make an initial group selection, and to decide
+whether to subscribe to new groups. For instance, when you create the
+following pattern file:
+
+- *.advocacy
++ comp.os.*
+
+you will automatically be subscribed to all current and future
+comp.os.* groups, except for *.advocacy groups. If you like, you
+can include the script as an example in the sn distribution.
+
+--
+Dick Streefland                    ////               De Bilt
+dick.streefland@xs4all.nl         (@ @)       The Netherlands
+------------------------------oOO--(_)--OOo------------------

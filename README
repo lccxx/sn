@@ -1,0 +1,109 @@
+To build sn, read file INSTALL.  sn is obtainable from
+<http://www.iki.fi/patrik/sn/>.
+
+What it is
+----------
+sn is a small news system for small sites serving perhaps a few
+dozen newsgroups, and with a slow connection to the internet.
+It is similar to Leafnode (<http://leafnode.sourceforge.net/>).
+The target user is a home or SOHO with a single modem connection
+to the Internet, maybe running IP masq or similar, and serving a
+few workstations.
+
+sn is different
+---------------
+sn is fast.  The news fetcher implements command pipelining and
+parallel fetches, so high modem latency doesn't cost you.
+(You can also throttle sn down, if it's too fast).
+
+sn is flexible.  You can subscribe to newsgroups on several
+upstream sites, and you can create local newsgroups that are not
+propagated upstream.  sn can make mailing lists look like newsgroups
+transparently.
+
+sn is non-intrusive.  It has no configuration files, only control
+files with simple semantics, so it's suited to being run in an
+automated fashion.
+
+sn is small.  It batches 10 (default) articles per file, so
+conserving inodes and reducing disk block fragments.  sn can also
+compress the article bodies.  It aliases cross posts rather
+than making separate copies.  It does not maintain a bulky overview
+database; instead it gets overview information directly from the
+articles.  Spool metadata is 5% to 10% of the total spool size,
+even with compression.  You don't need to build a separate file
+system just to spool news.
+
+sn doesn't have to be set up for the system.  You can use it
+privately, and your users can maintain their own news spool without
+building sn.
+
+sn has limitations
+------------------
+Because the news spool is in an unconventional format, news readers
+can read news locally only via NNTP.
+
+IHAVE is not supported.  Use POST instead.
+
+sn has no idea of distributions.
+
+sn can't handle thousands of newsgroups.  A hundred is comfortable.
+
+The method sn uses to alias cross posts is similar to filesystem
+symlinks rather than hard links, in that if the original article is
+expired, the alias breaks.
+
+sn doesn't know how to filter spam.
+
+Newsgroup names are subject to the same length limitations as any
+filename.
+
+Requirements
+------------
+sn is beta. It should work on most UNIXish systems, as long as the GNU
+tools are installed. (Tested on Linux (main development platform),
+Solaris and FreeBSD.) If it runs on your machine, let me know. Or if it
+doesn't run.
+
+You need zlib (<http://freshmeat.net/projects/zlib/>) if you decide to
+compile in the compression feature.
+
+You'll need inetd or tcpserver (<http://freshmeat.net/projects/ucspi-tcp/>)
+to run the daemon.  If you use inetd you will probably also want tcpd
+(tcp wrappers).
+
+I am interested in bug reports, comments, and suggestions.
+
+Installation
+------------
+Read file INSTALL.upgrade first if you're upgrading from a
+previous version.  Otherwise read file INSTALL, then INSTALL.run,
+then INSTALL.notes.
+
+Mailing list
+------------
+There is a mailing list (sn@infa.abo.fi) available. If you have questions or
+comments concerning sn, please join the list and post them there.
+
+To subscribe, send "subscribe sn" in the body of an e-mail to
+majordomo@infa.abo.fi. (Or "subscribe sn me@my-isp.somewhere" to use the
+specified e-mail address.)
+
+License
+-------
+Distribution of sn is covered by the GNU GPL.  See file COPYING.
+Use of sn is not restricted.  No express or implied warranty of
+fitness for any purpose (but I'm still interested in bug reports
+and comments).
+
+Known problems
+--------------
+It's possible that duplicate articles will be entered in the spool,
+if more than one article stream is fed into it simultaneously.  This
+probably will never be "fixed".
+
+History
+-------
+sn was created by Harold Tay <harold-sn@nb.com.sg> and maintained by him
+until version 0.3.2. From 0.3.3 onwards, sn is maintained by
+Patrik Rådman <patrik@iki.fi>. For details see the CHANGES file.

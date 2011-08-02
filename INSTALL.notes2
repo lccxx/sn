@@ -1,0 +1,9 @@
+Some thoughts that haven't been tested, but should be workable.  Why
+include it here?  Because if you do this, I'd like to hear about it
+even if you have no problems.
+
+Aliasing of newsgroup names.
+If group.alias is a symlink to group.real, which is a newsgroup directory,
+then all functions that apply to group.real (posting, fetching, etc.)
+apply equally to group.alias as group.real.  EXCEPT in reading articles,
+when the newsgroup name is group.alias, whereas it should be group.real.

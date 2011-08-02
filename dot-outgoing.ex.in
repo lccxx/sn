@@ -1,0 +1,56 @@
+#!!!BASH!!
+# This is a SAMPLE .outgoing file suitable for use in a local
+# newsgroup to feed to a mailing list.
+#
+# You MUST edit this before copying it into news.group/.outgoing.
+# You must set at least LISTADDRESS and SENDMAIL:
+
+# Invocation environment:
+# Current directory will be $SNROOT if set else !!SNROOT!!.
+# The article is available on descriptor 0, in wire format.
+# If TCPREMOTEIP and TCPLOCALIP are set, that is the dotted-quad IP
+# of the posting host and server (us) respectively.
+# NEWSGROUP is set to this local newsgroup's name.
+# The script must exit 0 to indicate it has successfully handled the
+# article, or non-0 to indicate failure.
+
+LISTADDRESS=postmaster                     # mailing list address
+SENDMAIL="/var/qmail/bin/qmail-inject"     # Running qmail?
+#SENDMAIL="/usr/lib/sendmail $LISTADDRESS" # Running sendmail?
+#
+# If you're using qmail, you can set these:
+#
+# QMAILSUSER=postmaster       # For envelope sender
+# QMAILSHOST=                 # Ditto
+# export QMAILSUSER QMAILSHOST
+#
+# Otherwise, if you're using sendmail, you could set these:
+#
+# LOGNAME=postmaster
+# HOSTNAME=
+# export LOGNAME HOSTNAME
+
+#
+# Real work begins here.  This turns a news article into
+# something suitable for mail.
+#
+
+{
+if [ "x$TCPREMOTEIP" != x ]; then
+  if [ -s .me ]; then me=`cat .me`; else me="$TCPLOCALIP"; fi
+  echo "Received: from $TCPREMOTEIP by ${me:-localhost} with nntp; `date +'%e %h %Y %H:%M:%S %Z'`"
+fi
+echo "To: $LISTADDRESS"
+sed 's/$//
+1,/^$/{
+/^[nN][eE][wW][sS][gG][rR][oO][uU][pP][sS] *:/d
+/^[pP][aA][tT][hH] *:/d
+/^[lL][iI][nN][eE][sS] *:/d
+/^[bB][yY][tT][eE][sS] *:/d
+/^[tT][oO] *:/d
+}
+/^$/,${
+s/^\.//
+}
+'
+} |$SENDMAIL

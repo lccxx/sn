@@ -1,0 +1,84 @@
+.TH snprimedb,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+snprimedb \- feed the sn database.
+.SH SYNOPSIS
+.B snprimedb
+.RB [- i ]
+(no arguments)
+.br
+.SH DESCRIPTION
+.B snprimedb
+reads records from its standard input and enters them into the database.
+The database is appended to; if you want to start a new database,
+you would delete the database files
+.IR .chain , \ .table , \ .newsgroup
+before running this program.
+
+The main purpose of
+.B snprimedb
+is to rebuild the ID database.  Then its input is usually obtained
+from
+.BR snscan .
+
+If the option
+.RB - i
+is given, simply initialize the database files if they do not exist,
+and exit.
+
+Input lines are of the format
+.br
+.I newsgroup id serial
+where
+.I newsgroup
+is the newsgroup the article may be found in,
+.I id
+is its message id, and
+.I serial
+is the local serial number of that article in that newsgroup.
+If
+.I newsgroup
+is the special name
+.BR =junk ,
+then the whole line is ignored.
+
+You will need to be root or the owner of !!SNROOT!! to do this.
+
+.SH BUGS
+.B snprimedb
+does not check to see that the articles really exist.  Also the size
+of the hash table is fixed at compile time.
+
+Under degenerate conditions, the hash table file
+.I .chain
+(see below) could
+grow very large, with reclaimed space remaining unused.  This is due
+to the very simple file space allocator, which doesn't know how to
+coalesce adjacent free areas.  It doesn't know how to split them either.
+The allocator assumes that the shape of the distribution of record lengths
+remains quite constant over time.
+
+The hash table database doesn't make any attempt to reduce its
+footprint.  This should be acceptable, since the database is shared.
+
+.SH ENVIRONMENT VARIABLES
+.TP
+.B SNROOT
+If this is set and is not empty, the value is used in place of
+.BR !!SNROOT!! ,
+the default news spool directory.
+
+.SH FILES
+.TP
+.RI !!SNROOT!! /.table
+.B snprimedb
+uses this file as the index of the hash table, and ...
+
+.TP
+.RI !!SNROOT!! /.chain
+as the hash chains, and ...
+
+.TP
+.RI !!SNROOT!! /.newsgroup
+to attach an integer identifier to each newsgroup name.
+This file is a human-readable flat text file.
+

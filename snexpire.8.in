@@ -1,0 +1,77 @@
+.TH snexpire,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+snexpire \- expire news under the
+.B sn
+system.
+.SH SYNOPSIS
+.B snexpire
+.RI [- v ]
+.RI [- exp ]
+.IR newsgroup
+.RI [[- exp ]
+.IR newsgroup ]...
+.br
+.SH DESCRIPTION
+.B snexpire
+expires news in the
+.B sn
+news system, one article file (=10 articles, compile time default)
+at a time.
+.B snexpire
+always leaves behind at least one article file, so that newly
+entered articles will have numbers not overlapping previously used
+numbers.  As an exception if the expiration age is set to 0,
+then even this last file will be expired and subsequent article
+numbers will start from the beginning.
+You will need to be root or own !!SNROOT!! to run
+.BR snexpire .
+
+.SH OPTIONS
+.tp
+.RB - v
+Output a line for each article expired.  The format of this line is
+the same as for
+.BR snscan .
+.SH ARGUMENTS
+.B snexpire
+expires all
+.IR newsgroup s
+named on the command line.  Each newsgroup may be preceded by
+.RI - exp
+to control the expiration age.
+.I exp
+is of the form
+.IR # [ hdwmy ]
+where
+.I #
+is a number, followed by one of the characters
+.IR h , d , w , m , y
+representing hours, days, weeks, months and years.  The default for
+.RI - exp
+is a compile-time fixed.  Each
+.RI [- exp ]
+applies to the next newsgroup only, any newsgroups after that one
+get default treatment unless overridden by another
+.RI [- exp ].
+
+.SH FILES MODIFIED
+.RI !!SNROOT!!/ newsgroup /.times,
+.RI !!SNROOT!!/ newsgroup /[0123456789]*,
+!!SNROOT!!/{.chain,.table}.
+
+.SH ENVIRONMENT VARIABLES
+.TP
+.B SNROOT
+If this is set and is not empty, the value is used in place of
+.BR !!SNROOT!! ,
+the default news spool directory.
+
+.SH FILES
+.TP
+.RI !!SNROOT!!/ newsgroup / .expire
+If this exists, its contents are taken to be
+.I exp 
+if not overridden by 
+.RI - exp
+on the command line.
+

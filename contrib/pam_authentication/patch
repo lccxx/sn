@@ -1,0 +1,29 @@
+--- Makefile.orig	Sun Nov 11 14:28:47 2001
++++ Makefile	Sun Nov 11 14:29:33 2001
+@@ -59,10 +59,10 @@
+  addr.o valid.o key.o field.o
+ OBJS =$(AOBJS) snscan.o snprimedb.o sndumpdb.o snntpd.o list.o \
+  post.o commands.o snexpire.o \
+- snmail.o snget.o
++ snmail.o snget.o snauth.o
+ BINS =snprimedb snntpd snfetch snexpire snsend \
+  snmail snget sngetd snscan sndumpdb \
+- snnewgroup sndelgroup snlockf snsplit
++ snnewgroup sndelgroup snlockf snsplit snauth
+ SCRIPTS =dot-outgoing.ex SNHELLO SNPOST
+ PROGS =$(BINS) $(SCRIPTS)
+ MANS =sn.8 sncat.8 sndelgroup.8 sndumpdb.8 snexpire.8 \
+@@ -128,6 +128,8 @@
+ 	$(LD) `cat cc-flags` $^ -o $@ $(LIBS)
+ snlockf: snlockf.o
+ 	$(LD) `cat cc-flags` $^ -o $@ $(LIBS)
++snauth: snauth.o
++	$(LD) `cat cc-flags` $^ -o $@ -lpam
+ 
+ %: %.in sed-cmd
+ 	sed -f sed-cmd $< >$@
+@@ -208,3 +210,4 @@
+ snmail.o: snmail.c config.h parameters.h hostname.h unfold.h path.h \
+  addr.h field.h
+ snget.o: snget.c config.h get.h parameters.h path.h valid.h
++snauth.o: snauth.c

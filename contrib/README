@@ -1,0 +1,6 @@
+This subtree contains tools and examples that are not maintained as
+part of the core system for some reason, probably mainly because I
+don't feel like supporting the feature in question. :)
+
+Each subdirectory contains a README file with information about the
+module, and who the author is.

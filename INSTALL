@@ -1,0 +1,55 @@
+If you're upgrading from a previous version of sn, please read
+INSTALL.upgrade first.
+
+To install sn:
+
+0) Decide if you want the compression feature compiled in.  It's
+   safe to compile it in; you don't have to use it if you don't want
+   to.
+
+   If you do want compression, get and install libz.so or libz.a
+   first.  You'll also need zlib.h and zconf.h.  These appear to
+   be missing in some Linux distributions.
+
+   The email address "postmaster" (on localhost, see also config.h)
+   should already exist, and the email system, at least local email,
+   should be operational.  sn will use email for some error messages.
+   The executable "/bin/mail" should exist.
+
+   If you are installing on something other than Linux, (such as Solaris)
+   remember to run the GNU utilities. I.e. when it says "make" below,
+   you should run "gmake" if that is the name of GNU make on your system.
+
+1) Edit Makefile.  The make variables to look out for are SNROOT
+   and PREFIX which are the news spool location and where to put the
+   executables and man pages, respectively. Unset the ZLIB variable if
+   you have decided to disable compression.
+
+   In the following, SNROOT refers to the value of SNROOT as you
+   have set it in the Makefile; likewise for PREFIX.
+
+   SNROOT should be on a local filesystem, not NFS.
+
+2) Edit config.h.  Probably nothing to change, but follow the
+   comments.
+
+3) Build it.  Type "make", then "make -n install" to see where
+   things will be installed to; "make strip" optionally to strip the
+   binaries.  "make clean" if you want to start over.
+
+4) Create the directories and the fifo:
+     $ mkdir SNROOT
+     $ mkdir PREFIX/sbin
+     $ mkdir PREFIX/man/man8
+     $ mknod -m 600 SNROOT/.fifo p
+   Change the ownership of SNROOT and SNROOT/.fifo to the user and
+   group for which you want sn to run (for instance, news.news).
+   This is important: the ownership of SNROOT determines sn's
+   running privileges.  Do NOT make the owner root.
+
+5) If you're upgrading from a previous version of sn, please read
+   INSTALL.upgrade next.  Finally, "make install" in the source
+   directory.
+
+Read INSTALL.run for a quick introduction on how to run sn.
+

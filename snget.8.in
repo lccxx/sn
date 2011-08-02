@@ -1,0 +1,193 @@
+.TH snget,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+snget,sngetd \- fetch news from upstream sites and store them locally.
+.SH SYNOPSIS
+.B snget
+.RI [ options ]
+.RI [ news.group ...]
+.br
+.B sngetd
+.RI [ options ]
+.br
+.IR options :
+.RI [- d ]
+.RI [- h\ Bps ]
+.RI [- p\ nparallel ]
+.RI [- c\ depth ]
+.RI [- m\ max ]
+
+.SH DESCRIPTION
+.B snget
+fetches articles for the
+.IR news.group s
+on the command line (or all non-local newsgroups if none are
+specified) from their respective upstream feeds, and stores them
+in the news spool !!SNROOT!!.  If a newsgroup could not be fetched for,
+it may be attempted again.
+.B sngetd
+does the same, except it reads newsgroup names from
+.RB !!SNROOT!!/ .fifo
+and does not exit.
+.B sngetd
+does not fork into the background.
+
+.B snget
+does not guarantee to fetch the groups in the order specified on the
+command line.
+.B snget
+and
+.B sngetd
+will write errors and status messages to descriptor 2.
+
+.B snget
+and
+.B sngetd
+are both scheduling wrappers that call
+.RB !!BINDIR!!/ SNHELLO ,
+.BR snfetch ,
+and
+.BR snstore .
+You must own !!SNROOT!! or be root in order to run
+.B snget
+and
+.BR sngetd .
+
+.SH OPTIONS
+.TP
+.RI - d
+Enable verbosity, may be specified multiple times.  This option is
+also propagated to
+.B snfetch
+and
+.BR snstore .
+
+.TP
+.RI - p\ nparallel
+Attempt to fetch for
+.I nparallel
+newsgroups at once.  Default is 4, maximum is 8.
+
+.TP
+.RI - h\ Bps
+Throttle the sum of bandwidth used by all
+.BR snfetch es
+to
+.I Bps
+bytes per second.  This option is used to prevent
+.B snget
+or
+.B sngetd
+from hogging the network.  By default there is no throttling.
+
+.TP
+.RI - c\ depth
+.I depth
+is passed to
+.B snfetch
+as the depth of the command pipeline.
+
+.TP
+.RI - m\ max
+The very first time contacting the news server, retrieve no more
+than
+.I max
+articles per newsgroup, default is 200.  This option is useful only
+if there are unprimed newsgroups and has no effect otherwise.  The
+.B .max
+file in each newsgroup directory still applies (see
+.BR snfetch (8)).
+
+.TP
+.RI - t\ timeout
+This option is not documented because it is ignored and will
+disappear in a future release.  See
+.B .timeout
+in
+.B FILES
+next.
+
+.SH FILES
+.TP
+.B Server Directories
+These are the directories
+.RI !!SNROOT!!/.outgoing/ server.name:port ,
+which are symlinked from
+.RI !!SNROOT!!/ news.group /.outgoing.
+If the latter isn't a (symlink to a) directory,
+.B snget
+won't fetch for
+.IR news.group .
+
+.TP
+.RI !!SNROOT!!/.outgoing/ server.name:port /.timeout
+If this file exists and contains a number, this is taken to be the
+timeout in seconds in all dealings with
+.IR server.name:port .
+Default is 120 seconds.
+
+.TP
+.RI !!SNROOT!!/.outgoing/ server.name:port /.SNHELLO
+If this program file exists, it is invoked instead of the default
+(usually
+.RB !!BINDIR!!/ SNHELLO )
+when an NNTP connection is first made to
+.I server.name:port
+in order to read the greeting and upload posted articles.  If
+.I server.name:port
+requires a username and password, you would copy the default here
+and edit that information in.
+
+.TP
+.RI !!SNROOT!!/ news.group /{.serial,.max}
+.B snget
+and
+.B sngetd
+read these files on behalf of
+.BR snfetch .
+
+.SH SIGNALS
+Other signals have default behaviour.
+.TP
+.B SIGUSR1
+If
+.RI - h\ Bps
+was specified,
+.I Bps
+is halved, else is ignored.
+.TP
+.B SIGUSR2
+If
+.RI - h\ Bps
+was specified,
+.I Bps
+is doubled, else is ignored.
+
+.SH ENVIRONMENT VARIABLES
+See also
+.RB !!BINDIR!!/ SNHELLO
+for the list of environment variables exported by
+.BR snget / sngetd .
+.TP
+.B SNROOT
+If this is set and is not empty, the value is used in place of
+.BR !!SNROOT!! ,
+the default news spool directory.
+
+.TP
+.B PATH
+To find
+.B SNHELLO
+(if this server does not have a
+.BR .SNHELLO ),
+.BR snfetch ,
+and
+.BR snstore .
+If
+.B PATH
+does not contain !!BINDIR!! as one of it's components, !!BINDIR!! is
+appended to it.
+
+.SH SEE ALSO
+.BR snfetch (8),
+.BR snstore (8),
+.RB !!BINDIR!!/ SNHELLO

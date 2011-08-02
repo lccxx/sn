@@ -1,0 +1,185 @@
+0.3.8: Bugfix release. No new features.
+
+--
+0.3.7: POST is now SNPOST and HELLO is SNHELLO. If you have customized
+scripts you need to make the same name change. (.POST -> .SNPOST and
+.HELLO -> .SNHELLO)
+
+--
+0.3.6: Bugfix release. The Makefile has been slightly simplified with the
+introduction of a PREFIX variable, which should be set to the parent
+directory of sn's manual and binary directories. (If you wish to have
+these directories in separate locations, BINDIR and MANDIR can be set
+as before.)
+
+--
+0.3.5: The way that snexpire calculates the length of a month has changed
+so that an expire time of "12m" now actually means about 12 months, and not
+11. (Now you can also specify years, for example "2y".)
+
+--
+0.3.4 fixes bugs and improves portability. No new features.
+
+--
+0.3.3: The default e-mail address for the administrator used to be
+"postmaster", now it's determined by the DEFAULT_ADMIN_EMAIL variable
+in the Makefile.
+
+--
+0.3.2 is a bug fix release over 0.3.1.  No incompats.
+
+--
+0.3.1 is a bug fix release over 0.3.0.  No incompats.
+
+--
+0.3.0 has a lot of code level changes, but sn still behaves
+much the same.  Most of these changes have to do with cleaning up
+the structure by drawing a clearer line between what is sn and what
+is site policy.  This has resulted in a bunch of stuff being
+moved from the core into editable and overrideable scripts.
+
+For those who have been using 0.2.5 in a "normal" way - global and
+local newsgroups, and mailing lists - you needn't change anything
+except maybe the NEWSMASTER macro.  This macro was used to set the
+email address of the site admin, now that address is configured in
+the POST and HELLO scripts.  The default is $NEWSMASTER environment
+variable if set, otherwise $LOGNAME if set, otherwise "postmaster".
+
+For other sites that have been using the spool in a novel way,
+read on.
+
+Programs removed:
+The "throttle" and "sn-words" programs have been removed.  You can
+use those from an old distribution if you need them.
+
+snntpd invocation:
+snntpd now optionally invokes a logger to send log messages to, and
+the INSTALL files show that option being used.  This means the
+"nntpd" wrapper script is no longer needed, but if you're happy with
+the existing setup, there is no need to change the invocation.
+
+snstore:
+snstore no longer takes the -1 option.  It was a mistake to document
+it anyway.  If you're using a custom storage script, it may be
+easier to use snsend for your purpose now.
+
+The junk newsgroup:
+If you create a newsgroup "=junk", snstore and snsend (new program)
+will put articles here that don't belong anywhere else, rather than
+dropping them.  If you want the old behaviour, which is to dump them
+to descriptor 2 or drop them, don't create "=junk".  The junk
+newsgroup can be expired like any other news group, but it isn't
+visible under snntpd.
+
+Control messages:
+By default now cancel control messages get mailed to you for action,
+whereas before, sn didn't understand control messages at all.  If
+you don't like this, copy BINDIR/POST into SNROOT/.POST and edit it
+to remove the first stanza.
+
+snmail checking:
+Old snmail used to check these things: valid newsgroup name;
+existence of the newsgroup; presence of the message ID in the
+database; and that SNROOT/.nopost does not exist.  New snmail
+doesn't.  You can still request these checks by specifying snmail
+-scn (send to [-s]nstore and tell it to also [-c]heck the database
+but do [-n]ot store it).
+
+sncancel (new) and inaccurate snntpd listing:
+Some news readers complain if the news server's GROUP output lists
+a certain number of articles, but fewer than those actually exist.
+This problem will reappear in snntpd if you use sncancel, since
+snntpd merely checks the lowest and highest articles, and assumes
+there are no holes in between.  I'm not likely to "fix" this, because
+a news reader can't really expect the article count to not change,
+even within a session.
+
+.outgoing files (local newsgroups):
+Please check that IF the .outgoing file has the executable
+bit set, that it also has the "#!" interpreter line.  snntpd now
+runs the file directly (without sh) if it is executable, so that
+.outgoing can be a binary.  Otherwise if the file is not executable,
+snntpd will still invoke it via sh.  In the previous versions,
+snntpd always invoked .outgoing via sh, and always disregarded the
+file mode.
+
+--
+0.2.5 has some large code changes, and sn's behaviour has changed
+in a few incompatible ways.  Aside from these it is safe to use
+these binaries on your old spool.
+
+Permissions:
+sn binaries are no longer setuid by default.  Instead they get
+their idea of running permissions from the permissions on SNROOT
+(or $SNROOT environment variable).  This means sn programs no longer
+check $SNUID and $SNGID environment variables.  If you've been using
+snstore in a custom news spool injector, or have scripts that set
+$SNUID/$SNGID, you'll want to recheck them.
+
+Changes in snmail:
+If no newsgroup is specified on the command line, snmail now looks
+at the Return-Path: line before the From: line to get it's idea of
+the destination newsgroup.  If you've been letting snmail figure
+the newsgroups on its own, check the invocation again or mail might
+start going into the wrong newsgroups.
+
+snpost:
+snpost now mails failed postings to $LOGNAME if set, then falls back
+to NEWSMASTER in config.h.
+
+Compression:
+Compression is now compile-time optional.  If you opt not to compile
+compression, you can't use the binaries on a spool with compressed
+articles.  sn won't warn you.
+
+--
+0.2.3 is a maintenance release.
+If you're installing this version on top of a version prior to 0.2.2,
+the previous snget script has been replaced by an snget binary, and
+you may want to save the script before "make install".  Invocation
+is backwardly compatible but some options have been added.
+
+The throttle program is no longer used, but is retained since it can
+be useful if you decide to use a different method to obtain news.
+
+If you're installing 0.2.3 on top of a version prior to 0.1.7,
+and if you've used the compression facility, you'll need to dump
+and restore the news spool because the compression code has changed.
+See below.
+
+If you're installing 0.2.3 on top of 0.1.8 or before and
+you want to retain your current news spool, you MAY want to dump
+and restore the spool (as above) IF you have had trouble using sn
+with Netscape News.  If you do so, your articles will be renumbered;
+whereas before they started at 0, now they'll start at 10.  See
+below.
+
+Dumping and restoring a spool
+-----------------------------
+Do this using the OLD version of sn:
+$ cd SNROOT  # the old SNROOT, if it's different from the new one.
+$ BINDIR/sncat -n * >/tmp/arts
+or:
+$ BINDIR/sncat -n * |gzip -c >/tmp/arts.gz
+You've now got a multi-megabyte file called /tmp/arts (or
+/tmp/arts.gz) which contains your news spool.  Don't forget the "-n".
+
+If your SNROOT has changed since the old installation, just delete
+the old spool (rm -rf SNROOT).  Build and install as normal.
+
+But if you're keeping the same spool directory, you'll want to clean
+out the old spool.  This retains your options, but removes your
+old article files and deletes the database (which will be recreated).
+Build and install as normal, then:
+$ make spoolclean
+and type 'y'.  
+
+Then restore into the new news spool, using the NEW sn binaries:
+$ BINDIR/snstore </tmp/arts
+or:
+$ gzip -cd </tmp/arts.gz |BINDIR/snstore
+$ rm /tmp/arts
+
+Once you've done this, the article entry times will be off, so
+nothing will get expired for the next week or so.
+

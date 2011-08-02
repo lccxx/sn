@@ -1,0 +1,160 @@
+.TH snmail,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+snmail \- mail-to-news filter
+.SH SYNOPSIS
+.B snmail
+.RI [- sP ]
+.RI [ listname
+.RI [ prefix ]]
+.br
+.SH DESCRIPTION
+.B snmail
+reads a single email message on standard input, and writes the
+converted message to standard output.
+This output is suitable for feeding to
+.BR snstore .
+
+.B snmail
+does these conversions:
+If the first line is a UUCP
+.B From_
+line, it is silently discarded;
+a
+.BR Newsgroups :
+line is added with the value of
+.I prefixlistname
+.RI ( prefix
+concatenated with
+.IR listname ),
+and other existing
+.BR Newsgroups :
+lines are removed;
+and a
+.BR Path :
+line is created from all
+.BR Received :
+lines, which are removed;
+all header lines are unfolded;
+if no message ID exists, one is created;
+message IDs in all
+.B References:
+lines and
+.BR In-Reply-To :
+lines are collected into a single
+.B References:
+line; all lines are rewritten to end in CRLF; and a lone
+.B .
+on a line is written at the end of the message.
+
+.B snmail
+will accept and pass on messages with invalid header fields.
+
+.B snmail
+is meant to be run from a 
+.B .forward
+or the
+.B /etc/aliases
+file (if you're using sendmail or similar) or from a
+.B .qmail
+file (if you're using qmail).
+.B snmail
+may write status or error messages to standard error.
+
+.SH OPTIONS
+.TP
+.RI - s
+Pipe output to
+.B snstore
+directly, do not write to standard output.  This is so the exit status
+is not lost in a shell pipeline.  If you use this flag, it is also a
+good idea to also use
+.RI - c
+(tell
+.B snstore
+to check if article already exists).
+.TP
+Other options
+.B snmail
+also accepts options intended for
+.BR snstore ,
+viz.
+.RI - c ,
+.RI - v ,
+and
+.RI - n ,
+and these are passed on uninterpreted.
+
+.SH ARGUMENTS
+.TP
+.I prefix
+is the prefix of the newsgroup; if not specified, it defaults to
+.B local.
+(note the trailing
+.BR . ).
+.I prefix
+may not begin with a 
+.B .
+(dot) but it may be empty.
+
+.TP
+.I listname
+completes the newsgroup name; if not specified, it is the local part
+of the address in the
+.B Return-Path:
+line if it exists and isn't empty; otherwise it is the local part of
+the messages' first
+.BR From: .
+So if the message originated from the list
+.RB < linux-lemmings @vger.rutgers.edu>,
+then the default newsgroup becomes
+.BR local.linux-lemmings .
+.I listname
+may be empty if
+.I prefix
+isn't.
+
+You may want to have a file
+.RB !!SNROOT!!/ prefixlistname /.nopost
+to deny posting from all and sundry, to prevent the mailing list
+newsgroup from being contaminated.
+
+.I prefix
+and
+.I listname
+may contain uppercase characters; these are converted to lower case.
+
+.SH USAGE
+There are two ways of forwarding mail to the sn news spool:
+directly from a user's mail address; or forwarded to a central
+address and then invoking
+.BR snmail .
+The central concern here is permissions; while anyone can run
+.BR snmail ,
+not everyone may store mail in the spool.  Mail setups vary a lot,
+so basically you're on your own here.
+
+.SH ENVIRONMENT VARIABLES
+.TP
+.B SNROOT
+If this is set and is not empty, the value is used in place of
+.BR !!SNROOT!! ,
+the default news spool directory.
+
+.TP
+.B PATH
+If
+.RI - s
+was specified, determines where to look for
+.BR snstore ,
+before looking in !!BINDIR!!.
+
+.SH EXIT STATUS
+.B snmail
+exits 0 if the message was successfully converted and written,
+.B or
+if the message ID already exists in the ID database and the message
+was not stored or converted.
+
+.B snmail
+exits with 1 on usage error, 2 on operational error, 3 if the
+mail message wasn't in the proper format.

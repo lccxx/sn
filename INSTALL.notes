@@ -1,0 +1,171 @@
+If you're using sn in a novel way, I'd like to hear from you.
+Otherwise, here are some possibilities.  Look over the man pages
+or much of this won't make sense.  I haven't provided detailed
+instructions on these; systems vary too much.
+
+To speed up news fetching.
+  Experiment with the -c option to snget.  See the man page to
+  snfetch and heed the warning.  It works when talking to INN.
+
+To use "suck" to feed the news spool.
+  suck is a separate package that can be used to fetch news.
+  It has article filtering capabilities not present in snfetch
+  that you may want.  Versions of sn up to 0.2.1 made use of
+  either suck or tcpclient with snfetch to feed the news spool.
+  This was run from snget, which was at that time a shell script.
+  The script still remains as snget.sh even though it is no longer
+  used, and you can look at to see how it can be done.  Suck will
+  not know how to check if an article is already present, so use
+  the -c option to snstore.
+
+To let users use sn for a personal news system.
+  If you're the system admin, instruct your users to set their shell
+  environment to include these:
+
+  SNROOT=$HOME/sn # or whereever
+  export SNROOT # sh-type shells
+
+  Be sure their .qmail or .forward or .procmailrc and any crontab
+  commands sets these too.  If they are to use this to store mail,
+  they may also want to add a command "umask 044" to ensure files
+  created are not world readable.  Then they can use the sn programs
+  just as you can, only it applies to their own spool.  The advantage
+  to doing this is that it permits them another way to store their
+  mailing list messages (see below).  You don't really want them
+  to run another system news spool there.  Don't forget to tell
+  them how to expire.
+
+To turn a mailing list into a site-wide newsgroup:
+  Create a local newsgroup first, call it say
+  "local.mailing-list":
+     $ snnewgroup local.mailing-list
+  Set up your mail system (.forward, .qmail, /etc/aliases or
+  whatever) to pipe each incoming message to snmail, with the
+  command line similar to:
+
+     PREFIX/sbin/snmail -sc mailing-list local.
+
+  (note trailing dot).  Make sure permissions are correct and $SNROOT
+  is set correctly.  If you're using sendmail, you may run into
+  permissions problems.  It's a good idea to make sure the return
+  path of the incoming mail is the mailing list bounce address
+  before feeding it to snmail, or you might get all manner of crud
+  accumulating in the group.
+
+  This takes care of the incoming end of the mailing list.
+
+  If you also want to transparently forward articles posted into
+  that newsgroup to the mailing list, do the following: Copy the file
+  dot-outgoing.ex into SNROOT/local.mailing-list/.outgoing and edit
+  it (follow the comments).  This script gets executed by snsend as
+    "news.group.name/.outgoing"
+  each time someone posts to that newsgroup, and the article is
+  made available on its standard input.  You'll need to set the
+  mailing list address in it and tell it where to find sendmail.
+  You will probably also want to set the return address on it, so
+  bounces come back to the true subscriber to the mailing list and
+  so the list recognizes the sender.  Details on this vary according
+  to your MTA.  DO THIS CAREFULLY!  This is in effect a remailer,
+  and you are permitting your users to use your mail address.
+  You can always set/unset POSTING_OK via tcpd so snntpd will control
+  posting according to the posting host, or edit PREFIX/sbin/SNPOST for
+  even greater control.
+
+To prevent snget from hogging your modem when you dial up:
+  Use the -h option to snget.  See the snget man page.
+
+To change the upstream server of a (non-local) newsgroup:
+  You have to do this manually, as the owner of SNROOT or root.
+  Tell sn about the new upstream server, if it doesn't already know:
+    $ cd SNROOT
+    $ mkdir .outgoing/new.news.server:port
+  Use all lower case for the server name.  "port" is the numeric port
+  number, usually 119.
+  Delete the old symlink:
+    $ rm news.group.name/.outgoing
+  Re-create the same symlink to point to the new server:
+    $ ln -s ../.outgoing/new.news.server:port news.group.name/.outgoing
+  Zero out the newsgroups .serial file so it will re-sync on the
+  next fetch:
+    $ echo '0' >news.group.name/.serial
+  Make sure permissions are correct if you did this as root:
+    $ chown news.news news.group.name/.serial \
+      .outgoing/new.news.server:port
+  Replace "news.news" with whatever the ownership is on SNROOT.
+
+To create a moderated local newsgroup:
+  As with a newsgroup gated into a mailing list, create a .outgoing
+  file:
+    $ echo 'mail moderator@myhost' >SNROOT/news.group.name/.outgoing
+  (you can run sendmail directly instead of mail if you wish) where
+  "moderator@myhost" is the email address of the moderator.  Then
+  all new articles posted to that group end up being sent to him,
+  where, if approved, he can run snstore manually to insert the
+  article.  Don't use "cat >>filename"; you will probably run into
+  permissions and locking problems.
+
+To do news-on-demand:
+  Use sngetd.
+
+To recreate the article ID database:
+  This action may become necessary, because the database can, under
+  degenerate conditions, grow to enormous sizes.  The database also
+  isn't written synchronously, so it could become corrupt after a
+  system crash.
+
+  First, ensure that for the duration of the rebuild, snget or
+  suck or whatever it is you're using to pull in news, and snntpd,
+  are not running and will not be run.
+
+  $ cd SNROOT
+  $ touch .noservice
+  $ rm .newsgroup .table .chain
+  $ find . -type f -name "+*" -exec rm -f {} \;
+  $ snprimedb -i
+  $ snscan -n * | snprimedb; rm -f .noservice
+
+  Don't forget the "-n" to snscan.  This will rebuild the database
+  completely.  Its a good idea to place these lines in your system
+  rc files so this is done on every reboot, after fsck.
+
+To see which newsgroups are popular:
+  Run a daemon or shell script that reads newsgroup names from
+  SNROOT/.fifo and records them.  snntpd writes the name of the
+  newsgroup that someone is reading into this fifo.  You can use
+  this information to decide which newsgroups to drop, or which to
+  alter expiration for, or to run a dynamic feed.
+
+To save homeless articles:
+  Create a local newsgroup with the special name "=junk".  snstore
+  will save articles here that don't belong anywhere else.  Such a
+  situation is rare if you never use snstore directly, but it is
+  possible if for example you are gating a mailing list into it,
+  or if you are feeding the spool other than through snget, sngetd,
+  or snntpd.
+
+  snntpd will not recognize "=junk" as a valid newsgroup even if it
+  exists, so you cannot POST to it.
+
+  The default expiration age for "=junk" is also 7 days.
+
+To pull a newsgroup from 2 servers:
+  Some people have written asking about this, because their primary
+  server isn't very reliable or complete, so they want to augment
+  the articles with those obtained from somewhere else.
+
+  I haven't gotten around to writing this, but the idea is to
+  wrap snget with a script that rotates the .outgoing symlink among
+  all the servers each time it is called, so that each fetch is from
+  a different server.  The .serial file will have to be similarly
+  rotated.
+
+To authenticate connecting clients:
+  snntpd doesn't do any authentication at all. You do that by
+  running a script or program of your devising, that speaks limited
+  NNTP, that performs your choice of authentication.  If successful,
+  have it set the environment to inform PREFIX/sbin/SNPOST, then exec
+  snntpd with the -S (suppress greeting) flag.
+
+  For a simple script to do this, see contrib/simple_authentication.
+
+  If you'd prefer PAM-based authentication, see contrib/pam_authentication.

@@ -1,0 +1,176 @@
+--
+0.3.8 Tue Aug 10 15:15:34 EEST 2004
+SNHELLO: CR chars had accidentally become LFs, fixed.
+sndumpdb: Print decimal numbers instead of x/100 fractions.
+Made the header field name check more lenient in order to avoid unnecessary warnings.
+snmail: Convert In-Reply-To: to References: only if the message has no References:.
+snmail: Use last <> enclosed string in In-Reply-To: as the message-id.
+snmail: removed Message-ID checking and generation - this is handled by snstore.
+Replaced Message-ID checking with looser implementation based on RFC 2822.
+--
+0.3.7 Mon Apr 26 01:11:42 EEST 2004
+Added contrib directory for contributed tools/examples, and populated it
+  with 2 authentication implementations + an auto subscribe script.
+Code changes to improve readability: use booleans instead of integers where
+  appropriate, and NULL instead of 0 for pointers.
+Renamed log() -> log_() to avoid annoying warning in gcc 3.3.
+Fixed Segfault on PPC Linux systems. (Thanks to Chris Niekel)
+Renamed lockf to snlockf, POST to SNPOST and HELLO to SNHELLO in order to
+  prevent conflicts with executables from other packages.
+--
+0.3.6 Thu Jan 16 18:07:03 EET 2003
+Fixed XOVER for the case where a header is present but empty.
+Reorganized the Makefile a bit to make it simpler: added PREFIX variable.
+snsend: Fixed rnews batch reading for zero-length articles.
+--
+0.3.5 Sat Jul  6 18:37:50 EEST 2002
+Added an FAQ, containg the solution to the infamous POST problem.
+NEWGROUPS and NEWNEWS now works properly during DST. (Was offset one hour.)
+Made "sncat -i foo" work for users with read-only access to the spool.
+Expiration ages can now be specified in years, e.g. "2y" = 2 years.
+Made snexpire use a month of 30.415 days instead of 28.
+  With the old code, "12m" actually meant about 11 months.
+Fixed snget's -m option for the case where .serial can't be read.
+Made the XHDR command work for Xref headers.
+Removed the ugly "Terminated" messages from HELLO when using bash 2.
+--
+0.3.4a Tue Nov 13 00:17:20 EET 2001
+Made HELLO work with bash version 2.
+Fixed a bug in request-newgroups.
+--
+0.3.4 Sun Nov 11 19:08:55 EET 2001
+Reformatted the source with GNU indent to make it easier to read (for me).
+Made the request-list and request-newgroups features work again.
+snstore fixes: don't exit if =junk doesn't exist,
+  and strip trailing spaces from newsgroup names
+"dup/present" were printed the wrong way around in snfetch.
+Bug in Message-ID checking disallowed <foo@[IP-number]>.
+Made the "Can't write in spool" error a bit more informative.
+snget's -m option didn't work.
+Improved portability. (The biggest change was to replace all calls to
+  flock() with lockf().) sn should now work on most UNIXish systems,
+  as long as the GNU tools (gmake, gcc, bash, etc.) are installed.
+--
+0.3.3 Thu Nov 23 17:50:12 EET 2000
+Fixed a bug related to article ranges outside of the available articles.
+Added new Makefile variable: DEFAULT_ADMIN_EMAIL
+New maintainer: Patrik Rådman takes over.
+snexpire bug related to =junk.
+writefifo has been failing for a few revs now!  Fixed.
+--
+0.3.2 Fri Mar  3 22:33:02 SGT 2000
+Changed ctime to mtime, when checking .created.
+Date conversion error, e.g. for NEWGROUPS and NEWNEWS.
+Doc error, command line example using tcpserver.
+Bug in command parsing causes slrn grief
+More log levels tweaked
+Format bugs in snsend.
+--
+0.3.1 Fri Oct 29 11:24:12 SGT 1999
+Added -v option to snexpire.
+Bad logic when checking to map in newsgroup.c.
+snmail now silently discards leading From_ line if present.
+Empty article kludge^H^H^H^H^H^Hfix
+HELLO auth kludge
+post.c truncates lines from POST, fixed
+PATH made to include BINDIR in snntpd.c
+Log levels tweaked in snfetch, was too noisy
+--
+0.3.0 Tue Aug 10 12:01:14 SGT 1999
+Bug in times.c causes expiration to fail on empty newsgroup.
+Bug in head.c causes rnews input to fail.
+Newsgroup names checking relaxed and centralized.
+Optional "=junk" rejected articles newsgroup.
+Bug in times expiration not properly deleting article entry times.
+sncancel new program.
+Options for snscan, sncat, sncancel merged and extended.
+Exec .outgoing directly if executable, to permit binaries.
+snmail no longer checks for a valid newsgroup, since snstore will
+want the option of storing the article under =junk.
+parameters.c now checks euid/egid instead of uid/gid.
+NEWGROUPS command misinterpreted date.
+INSTALL.notes error, missing snprimedb -i command for reconstructing
+database.
+Another race in snstore, when creating a new article file.
+snexpire now checks to make sure id being deleted is the right one.
+snfetch now checks for duplicate ID's within the same session.
+snsend new program supercedes snstore.
+snstore -n now writes to fd 1 not 2.
+snstore no longer checks for local/global group.  It wasn't used
+anyway.
+Removed throttle and sn-words.
+--
+0.2.5 Sat Mar 27 13:07:05 SGT 1999
+Rare race in newsgroup.c fixed.
+Message ID leakage in database.
+--
+0.2.4 Wed Feb 24 21:09:52 SGT 1999 (private)
+sngetd new program.
+snnewgroup, sndelgroup now C programs.
+snntpd LIST command output format error (again)
+snexpire doc error, change.
+Compression compile-time optional, rewrite, reorg.
+snmail understands In-Reply-To.
+snmail no longer checks /.nopost, not its job.
+snmail optionally runs snstore.
+snlogin understands new reply codes; code reorg.
+snstore can save skipped article to stderr.
+Programs no longer installed setuid.
+.nopost check error, was not functioning correctly.
+Divide-by-0 in sndumpdb
+Format for logging pid changed in snfetch.
+snexpire logic altered to not leave garbage if 0 expire age.
+snget (and others) takes -P, passes to snfetch.
+0-length article bodies now legal in snntpd and snscan.
+--
+0.2.3 Mon Dec  7 12:44:03 SGT 1998
+Option -m for snget to limit initial articles.
+snpost locking now performed.
+snmail EOL conversion error; rewrite.
+snntpd LIST command output format error.
+snfetch rnews format error.
+--
+0.2.2 Thu Oct  8 11:02:54 SGT 1998
+-r option in snstore, snfetch, sncat.
+Rewrote snget as binary instead of script.
+Merged dh_dump() into sndumpdb.c, it didn't belong in dhash.c.
+Split dhash.c into readonly portion and readwrite.
+Rewrote snfetch: option to use pipelining.
+New IO lib with decent input line buffering, own dir, atomic logging.
+Env vars to allow separate users to own a different news spool.
+Incorrect interpretation of Xref: line fixed.
+System #includes.
+Scripts changed due to new/different bash behaviour.
+Bug in NEXT/LAST, not incrementing/decrementing.
+Bug in snstore in handling 8-bit data in head of article.
+Decent option processing, man pages updated.
+snlogin AUTHINFO sadness.
+Bug in do_post(), prevents posting to local group.
+Better snpost reporting.
+Off-by-one in art.c, resulting in random crashes.
+--
+0.2.1 Wed Aug  5 18:29:37 SGT 1998
+Missing realloc in subscribed.c, reorg in newsgroup.c.
+--
+0.2.0 Sat Jul 11 13:34:03 SGT 1998
+Replaced stdio calls.  Added timeout.  Mailing list support.
+Removed xover option in snfetch.  Dubious value.
+Various bugs.
+--
+0.1.9 Mon Jun 29 23:05:07 SGT 1998
+Mods for use with Netscape News, thanks Marko.
+XPAT command added.
+Added snmail.
+--
+0.1.8 Fri Jun 12 01:34:52 SGT 1998
+Minor changes.  I ought to just make a diff.  Aw, hell.
+#include problem in snscan.c; bash problem workaround in snget.
+--
+Bad data sync on if more than one process accesses the ID database.
+Option to snprimedb, -i.
+Wrong info in snstore.8, which said a newsgroup argument was needed.
+In fact there is no such argument.
+Wrong info in sn.8, in description of leafnode.
+--
+0.1.0 Sun May 17 16:38:43 SGT 1998
+Private release.  Thanks rth, janl, mlo.

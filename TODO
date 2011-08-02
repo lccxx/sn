@@ -1,0 +1,14 @@
+Figure out which man sections to use... does anyone read them
+anyway?
+
+Docs should mention flow and structure.
+
+When deleting a newsgroup, safer to remove all references to that
+newsgroup in the database, rather than scanning for IDs, and then
+deleting those.
+
+Use xover for filtering.
+If the file .filter exists, then have snfetch run BINDIR/snfilter,
+which sends XOVER and does some processing, passing the output to
+.filter shell script.  The output of this whole chain to snfetch is
+a series of number id lines, which represent the desired articles.

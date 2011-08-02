@@ -1,0 +1,183 @@
+.TH snntpd,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+snntpd \- small news server
+.SH SYNOPSIS
+.B snntpd
+.RI [- t\ timeout ]
+.RI [- P ]
+.RI [- S ]
+.RI [ logger ...]
+.br
+.SH DESCRIPTION
+.B snntpd
+is a small news server.  It needs to be run under inetd or tcpserver,
+as root or as the owner of !!SNROOT!!.
+.B snntpd
+does
+not fork into the background.
+It expects to read and write from and to the network
+on descriptors 0 and 1.
+
+.SH ARGUMENTS
+.IR logger ...
+(usually /usr/bin/logger)
+is taken to be a logging program, and all log output is piped to it.
+If
+.IR logger ...
+is not specified, log messages are directed to descriptor 2.
+
+.SH OPTIONS
+.TP
+.RI - t\ timeout
+specifies how long
+.B snntpd
+should wait for input before it gives up and exits.
+.I timeout
+is in seconds and defaults to 600.
+.TP
+.RI - P
+.B snntpd
+includes it's pid in log output.
+.TP
+.RI - S
+Suppress NNTP greeting on startup.  This is useful if you want to
+perform authentication before running
+.BR snntpd ,
+or want to provide your own greeting, from a wrapper.
+
+.SH POSTING AND POSTING PERMISSIONS
+Posts are usually handled externally by the
+.RB !!BINDIR!!/ SNPOST
+script, 
+which is responsible for fine-grain posting control; handling of
+control messages; and the ultimate distribution of the posted
+article.
+
+.B snntpd
+permits or denies posting in a very simple manner:
+
+If
+.RB !!SNROOT!!/ .nopost
+exists, posting is not allowed.
+
+Otherwise, if the environment variable
+.B POSTING_OK
+is not set, posting is not allowed.
+
+Otherwise if
+.B POSTING_OK
+is set (to the empty string), posting is generally allowed, and all
+POSTed articles are piped to the
+.B SNPOST
+script, which has the final say in the matter.  The value of
+.RB $ POSTING_OK
+is not currently used, but is reserved.
+
+.SH FILES
+.TP
+.RB !!SNROOT!!/ .fifo
+If this file exists, and is a fifo,
+.B snntpd
+will write the name of a newsgroup into it as that
+newsgroup becomes the current one.  If the fifo does not exist
+.B snntpd
+will not create it.
+
+.TP
+.RB !!SNROOT!!/ .noservice
+If this file exists,
+.B snntpd
+will display its first line and exit.  If the file can't be read or
+is empty, a default message is displayed.  This is useful for
+temporarily disabling the news server while you perform any
+maintenance.
+
+.TP
+.RB !!SNROOT!!/ .nopost
+See
+.B POSTING PERMISSIONS
+above.
+
+.TP
+.RB !!SNROOT!!/ .SNPOST
+If this script or program exists, it is invoked instead of
+.BR SNPOST
+to accept a posted article.
+
+.TP
+.RB !!SNROOT!!/news.group.name/ .nopost
+These files really belong to
+.BR SNPOST ,
+and it is unfortunate that
+.B snntpd
+has to check for their existence to determine the posting flag for
+the LIST command.  See
+.RB !!BINDIR!!/ SNPOST .
+
+.TP
+.RB !!SNROOT!!/news.group.name/ .info
+If this file exists, its first line is taken as the
+description of that group for use with the LIST NEWSGROUPS command.
+
+.TP
+.RB !!SNROOT!!/news.group.name/ .times
+is a binary file containing entry times, to support the
+.I NEWNEWS
+command.
+
+.TP
+.RB !!SNROOT!!/news.group.name/ .created
+is an empty file retained for it's timestamp, to support the
+.I NEWGROUPS
+command.
+
+.SH SIGNALS
+If
+.B snntpd
+catches SIGHUP, the files
+.RB !!SNROOT!!/{ .fifo , .noservice , .nopost }
+(see below) are checked again, as they are during startup.  Other
+signals have default behaviour.
+
+.SH ENVIRONMENT VARIABLES
+See also
+.RB !!BINDIR!!/ SNPOST
+for a list of environment variables exported by
+.BR snntpd .
+.TP
+.B PATH
+The PATH must be set such that
+.B snntpd
+can find
+.B SNPOST
+in order to accept postings.
+If
+.B PATH
+does not include !!BINDIR!!, !!BINDIR!! will be appended to it.
+
+.TP
+.B POSTING_OK
+This variable helps determine the site-wide posting policy.  See
+.B POSTING PERMISSIONS
+above.
+
+.TP
+.B TCPREMOTEIP
+If this value is set, it is taken to be the dotted-quad IP address
+of the connecting client.  If it is not set,
+.B snntpd
+attempts to derive it for itself, and then set its value.
+
+.TP
+.B TCPLOCALIP
+as above, but for the server's dotted-quad IP.
+
+.TP
+.B SNROOT
+If this is set and is not empty, the value is used everywhere in place of
+.BR !!SNROOT!! ,
+the default news spool directory.
+
+.SH SEE ALSO
+snsend(8),
+!!BINDIR!!/SNPOST

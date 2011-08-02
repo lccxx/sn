@@ -1,0 +1,106 @@
+.TH snsplit,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+snsplit \- split an article stream into individual articles
+.SH SYNOPSIS
+.B snsplit
+.RI [- r ]
+.RI [ field ...\ -]
+.IR prog ...
+.br
+.SH DESCRIPTION
+.B snsplit
+reads an article stream from descriptor 0 and splits it into separate
+articles, invoking
+.IR prog ...
+on each, with the article avaiable on descriptor 0.  This is useful
+as a quick-and-dirty way of filtering an article stream.
+
+The incoming article stream is expected to be in wire format, with
+lines ending in CRLF, leading dots doubled, and
+delimited by a dot on a line by itself.
+
+The article presented to
+.IR prog ...
+will have lines that end in a bare newline, will have all header
+lines unfolded, leading dots will be unstuffed, and the article
+will be terminated by end-of-file.
+
+.SH ARGUMENTS
+.TP
+.IR prog ...
+is the program (with arguments) to run on each article.  If
+.IR prog ...
+exits with any kind of failure,
+.B snsplit
+aborts.
+
+.TP
+.IR field ...-
+are optional header field names.  If these are specified, the value
+of the first header field of that name will be exported into the
+environment.  This
+.IR field ...
+list must be terminated by the hyphen.  See also
+.B ENVIRONMENT
+below.
+
+.SH OPTIONS
+.TP
+.RB - r
+Expect input articles in rnews batch format instead.
+
+.SH ENVIRONMENT
+.B snsplit
+sets some environment variables.  If the environment already
+contains these variables, they will be overwritten.
+
+.TP
+.B SEQUENCE
+If already set to a positive value, it is incremented for the first
+article.  If it isn't set, is set to one for the first
+article.  Thereafter it is incremented for each subsequent article.
+The value is always a 6-digit number with leading zeroes, and it can
+roll over.
+.TP
+.B BYTES
+contains the size of the current article.
+.TP
+.B HEAD_LINES
+The number of lines in the head of the article, excluding the blank
+separator line.
+.TP
+.B BODY_LINES
+The number of lines in the body of the article, excluding the blank
+separator line.
+.TP
+.BI FLD_ FIELD
+If any
+.IR field s
+are specified on the command line, where
+.I field
+is the name of an article header field, then
+.BI FLD_ FIELD
+will be set to the value of
+.IR field ,
+where
+.I FIELD
+is the same as
+.I field
+but with lower case characters changed to upper case, and all
+hyphens changed to underscores.  Confusing?  If
+.I field
+is
+.BR message-id ,
+then
+.B FLD_MESSAGE_ID
+will be set to the value of the first Message-ID field in the
+current article, if there is one.
+
+.SH EXIT CODES
+.B snsplit
+exits 0 on success, 1 on usage error, 2 on system error, and 3 on
+article format error.  If
+.IR prog ...
+exits with other than 0,
+.B snsplit
+will also exit that value.

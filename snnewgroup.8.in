@@ -1,0 +1,71 @@
+.TH snnewgroup.v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+snnewgroup \- create a new sn newsgroup
+.SH SYNOPSIS
+.B snnewgroup
+.I newsgroup
+.RI [ server ]
+.RI [ port ]
+.br
+.SH DESCRIPTION
+.B snnewgroup
+creates
+.I newsgroup
+assigning it an upstream NNTP server
+of
+.IR server : port .
+If
+.I port
+is not specified, defaults to 119.  If
+.I server
+is also not specified,
+.I newsgroup
+is created as a local group which is fed only by articles POSTed
+to it.
+
+You will need to be root or own !!SNROOT!! in order to add new groups.
+
+.SH ENVIRONMENT VARIABLES
+.TP
+.B SNROOT
+If this is set and is not empty, the value is used in place of
+.BR !!SNROOT!! ,
+the default news spool directory.
+
+.SH FILES CREATED
+.TP
+.RI !!SNROOT!!/ newsgroup
+Directory where articles will be stored.
+
+.TP
+.RI !!SNROOT!!/ newsgroup / .created
+Empty file for the newsgroup creation time.
+
+.TP
+.RI !!SNROOT!!/ newsgroup / .serial
+Where
+.B snget
+gets its idea of the new starting serial number for
+.I newsgroup
+on server
+.IR server : port .
+The value is initialized to 0.
+
+.TP
+.RI !!SNROOT!!/ newsgroup / .outgoing
+If
+.I server
+is specified, is a symlink to
+.BR
+.RI !!SNROOT!!/.outgoing/ server : port ,
+which is a directory, created if it does not already exist.
+If
+.I server
+is not specified, no file
+.RI !!SNROOT!!/ newsgroup /.outgoing
+will be created.  See also
+.BR snsend .
+
+.SH SEE ALSO
+sndelgroup, snsend
+

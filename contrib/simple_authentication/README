@@ -1,0 +1,6 @@
+This is a simple script for username/password authentication.
+The usernames and passwords are defined inline.
+
+by Johannes Berg (e-mail unknown),
+patched by Dominic Battre (e-mail unknown)
+and Patrik Rådman.

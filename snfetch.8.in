@@ -1,0 +1,142 @@
+.TH snfetch,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+snfetch \- fetch articles.
+.SH SYNOPSIS
+.B snfetch
+.RI [- r ]
+.RI [- t\ timeout ]
+.RI [- c\ depth ]
+.IR group\  [ serial \ [ max ]]
+.br
+.SH DESCRIPTION
+.B snfetch
+expects to read NNTP from file descriptor 6, and write NNTP to file
+descriptor 7, which descriptors must have already been open.
+Articles retrieved are written to descriptor 1.
+Each article displayed is separated from the next by a
+dot on a line by itself.  These articles are NNTP safe, in the sense
+that double-dot unquoting is not done, and all lines end in CR-LF.
+.B snfetch
+expects to begin it's NNTP speech by giving the GROUP command.  The
+upstream server's greeting must have already been read some other
+way.  Likewise, when
+.B snfetch
+is done, it will not send a QUIT command.
+
+The output is suitable for feeding to
+.BR snstore .
+
+.B snfetch
+always checks the article ID of the prospective article before
+retrieving it.  If the ID already exists in the ID database, the
+article will not be retrieved.  Note that this does
+.B not
+guarantee that all articles retrieved will be unique.
+
+.B snfetch
+does not guarantee to leave the NNTP conversation in a decent state
+(there might be more data to read, but
+.B snfetch
+aborted part way).
+
+You will need to be root or own !!SNROOT!! in order to run this program.
+
+It is not safe to direct the output of several
+.BR snfetch es
+to the same pipe descriptor, but a file descriptor is all right.
+
+.SH OPTIONS
+.TP
+.RI - t\ timeout
+.B snfetch
+will wait only
+.I timeout
+seconds (default 180) for data before giving up, if the server doesn't
+respond.
+
+.TP
+.RI - r
+Output in news batch format instead.  All articles will take the
+.B #! rnews
+form only, even if there is just one article, all lines end in
+bare linefeed, and dot-unquoting is performed.
+
+.TP
+.RI - c\ depth
+Employ a command pipeline of depth
+.IR depth .
+NNTP command pipelining is not officially sanctioned, so by default
+no pipeline is used.  However, a pipeline with a
+.I depth
+greater than 0 will substantally reduce transaction latency
+.B if
+the server accepts it.  A respectable value for
+.I depth
+might be between 1 and 5.
+
+.SH ARGUMENTS
+.B snfetch
+takes the name of a single newsgroup on its command line.  If
+.I serial
+is given, this is taken to be the first article number on
+.I group
+on the server to fetch.
+If
+.I max
+is specified, this is taken to be the maximum number of articles to
+fetch.  The first article retrieved may be after
+.I serial
+if
+.I max
+would be violated.  If
+.I max
+is not specified, there is no limit.
+
+.SH ENVIRONMENT VARIABLES
+.TP
+.B SNROOT
+If this is set and is not empty, the value is used in place of
+.BR !!SNROOT!! ,
+the default news spool directory.
+
+.SH FILES
+.TP
+.RI !!SNROOT!!/ newsgroup /.serial
+If
+.I serial
+is not specified, the starting serial number is taken from the file
+.RI !!SNROOT!!/ newsgroup / .serial .
+This defaults to
+.B 0
+if the file can't be read.
+
+.TP
+.RI !!SNROOT!!/ newsgroup /.serial.tmp
+If
+.B snfetch
+exits with success (0), the new
+.I serial
+is written into this file.
+The original file
+.RI !!SNROOT!!/ newsgroup /.serial
+is readonly by
+.BR snfetch .
+
+.TP
+.RI !!SNROOT!!/ newsgroup /.max
+If
+.I max
+is not specified on the command line,
+.I max
+is read from this file.
+If the file cannot be read or does not
+exist, there is no limit.
+
+.SH EXIT CODES
+.B snfetch
+exits 1 on usage error, 2 on system failure, 3 on protocol error,
+4 on read timeout, and 0 on success.
+
+.SH SEE ALSO
+snstore (8), snget (8)
+

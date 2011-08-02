@@ -1,0 +1,172 @@
+.TH snscan,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+snscan \- display information on articles in the spool
+.br
+sncat \- display articles in the spool
+.br
+sncancel \- cancel articles in the spool
+
+.SH SYNOPSIS
+.B snscan
+.RI [ options ]
+.IR articlespec ...
+.br
+.B sncat
+.RI [ options ]
+.IR articlespec ...
+.br
+.B sncancel
+.RI [ options ]
+.IR articlespec ...
+.br
+.IR options :
+.RI [- n ]
+.RI [- s
+.IR since ]
+.RI [- o
+.IR outputfile ]
+.br
+.SH DESCRIPTION
+.TP
+.B snscan
+displays information on all articles specified by
+.IR articlespec ,
+in the form
+.br
+.I newsgroup serial id
+.br
+on a line, one line per article matched.  This output is suitable
+for feeding to
+.BR snprimedb .
+.TP
+.B sncat
+displays the articles specified by
+.IR articlespec .
+.TP
+.B sncancel
+marks articles specified by
+.I articlespec
+as canceled, so they become unavailable to
+.B sn
+programs.
+
+
+.SH ARGUMENTS
+.I articlespec
+defines a broad pattern for articles.  It takes two mutually exclusive
+forms.
+.TP
+.B Specify by newsgroup and serial number
+Here
+.I articlespec
+is
+.br
+.IR newsgroup [: range [, range ]...]
+.br
+where each
+.I range
+is
+.br
+.IR serial [-[ toserial ]]
+.br
+(where
+.I toserial
+is greater than
+.IR serial ).
+If
+.I toserial
+is omitted, then all articles after
+.I serial
+are matched.  If both
+.I serial
+and
+.I toserial
+are empty, then only the first and last articles are matched.
+
+.TP
+.B Specify by articles message ID
+Here
+.I articlespec is
+.RI - i
+.IR id ...
+.br
+where each
+.I id
+is a message ID, angle brackets optional.
+
+.SH OPTIONS
+.TP
+.RB - n
+This option weeds out articles that are aliases.
+If an article is crossposted,
+there will be an original copy, the others will be aliases to it.
+This option prevents information being displayed if it is not from
+the original copy.
+
+.TP
+.IB - s since
+This option weeds out articles that were obtained before
+.IR since .
+.I since
+is in the format
+.IR year / month / day [: hour : minute ]
+where each is a number.
+.I year
+may be 2 or 4 digits, and
+.B /
+and
+.B :
+can be any non-digit character.
+
+.TP
+.IB - o outputfile
+Write output to
+.I outputfile
+instead of descriptor 1.  Sometimes you just don't feel like using
+the shell.
+
+.SH EXAMPLES
+.TP
+sncancel linux.lemmings:12
+Cancel article 12 from linux.lemmings.
+.TP
+snscan linux.lemmings:4,12-
+Display information on article 4, and also articles 12 to the most
+recent article, from linux.lemmings.
+.TP
+sncat -n -s 1998/4/1 linux.lemmings
+Display all articles that are not aliases, and which
+were entered after April 1 1998, from linux.lemmings.
+.TP
+snscan -i '123@myhost'
+Display information on the article whose ID is
+.BR <123@myhost> ,
+in whichever newsgroup it is found.
+
+.SH FILES
+Each
+.I articlespec
+or
+.I id
+on the command line refers to articles in the news spool
+located in
+.BR !!SNROOT!!.
+
+.SH ENVIRONMENT VARIABLES
+.TP
+.B SNROOT
+If this is set and is not empty, the value is used in place of
+.BR !!SNROOT!! ,
+the default news spool directory.
+
+.SH EXIT CODES
+.B snscan
+exits 0 on success, 1 on usage error, 2 on system error, and 3 on
+other errors.
+It is not an error to specify an article that does
+not exist, or which does not meet the
+.I since
+criterion.
+
+.SH SEE ALSO
+snprimedb(8)

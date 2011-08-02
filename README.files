@@ -1,0 +1,87 @@
+List of files that the sn package uses.  Filenames here are relative
+to SNROOT
+
+File         Type         Read by   Written by   Description
+----         ----         -------   ----------   -----------
+/G/.compress ?plain text  snstore   you          Whether compression
+                                                 should be applied
+                                                 to this group,
+                                                 and for article
+                                                 bodies of what size.
+/G/.times    !bin array   snntpd    snstore/     For NEWNEWS,
+                                    times_*()    snexpire.
+/G/.outgoing ?symlink/dir snpost,   snntpd/      If dir, contains
+             or file      snntpd    do_post()    articles to be sent
+                                                 upstream.  Else is
+                                                 script or program,
+                                                 run to dispatch POSTed
+                                                 articles.
+/G/.expire   ?plain text  snexpire  you          (optional) Contains
+                                                 max age.
+/G/.serial   !plain text  snget     snget        Next serial for
+                                                 G's server.
+/G/.serial.tmp
+             +plain text  snget,    snfetch      If snfetch exits ok,
+                          sngetd                 snget renames this to
+                                                 .serial
+/G/.max      ?plain text  snfetch,  you          Max. number of
+                          snget,                 articles that can
+                          sngetd                 be fetched at a time.
+/G/.nopost   ?empty       snstore   you          Deny posting to
+                                                 this group
+/G/.created  empty        snntpd    snnewgroup   Creation time.
+/G/.info     ?plain text  snntpd    you          Description of group
+/.nopost     ?empty       snstore,  you          Disallows sitewide
+                          snntpd                 posting.
+/.table      !struct      dh_*()    allo_*()     Hash chain index
+/.chain      !binary      dh_*()    allo_*()     Hash chains and
+                                                 message IDs. Like
+                                                 dbm's .pag and .dir
+/.newsgroup  !plain text  dh_*()    ng_*()       Each line is a
+                                                 group name
+                                                 and group ident.
+/.control    ?file        snntpd    you          Program or script
+                                                 to handle control
+                                                 messages POSTed.
+/.outgoing   dir                    snnewgroup   Contains the
+                                                 linked-to spool
+                                                 dirs of individual
+                                                 groups.
+/.outgoing/server.add.ress:port
+             dir          snpost    snnewgroup   Symlinked from
+                                                 /G/.outgoing;
+                                                 spooling directory
+                                                 for this server.
+/.outgoing/server.add.ress:port/$*
+             ?+plain text snpost    snntpd       Outgoing articles.
+/.outgoing/server.add.ress:port/request-*
+             ?+plain text           you/cron     Files containing
+                                                 arbitrary commands
+                                                 for this server.
+/.me         ?plain text  snntpd,   you          What the system's
+                          snstore,               name is.  Otherwise,
+                          snscan,sncat           looks it up.
+
+
+Notes:
+All paths are relative to SNROOT, the spool directory.
+/G/ represents a newsgroup directory.
+For Type:
+  ? is optional;
+  + is transitory;
+  ! is created if it doesn't exist;
+  otherwise, is required.
+If /G/.outgoing is a (symlink to a) directory, implies G is a global
+newsgroup, and articles posted to it are saved in this directory
+before being sent upstream.
+If /G/.outgoing is a (symlink to a) regular file, implies G is a
+private newsgroup, and posting to it invokes "sh G/.outgoing" and
+the article is NOT entered into the news spool.
+If /G/.outgoing does not exist, implies G is a local newsgroup,
+and all posts to it are entered into the spool immediately.
+All metadata (everything but the articles) file names begin with a dot.
+
+/.nopost is meant to disable entry of all articles into the spool,
+perhaps because the spool is under reconstruction.
+/G/.nopost is meant to disallow the NNTP POST command for that
+group.

@@ -1,0 +1,33 @@
+The following people have participated in developing sn,
+either with code, testing, bug reports or suggestions.
+
+Harold Tay
+Marko Macek, fixes esp. for Netscape News; script.
+Richard Henderson, comments and code review.
+Nicolai Langfeldt, actually tested it.
+David Holland, idea for mail-to-news forwarding.
+Kal Ng, bugs and heavy testing.
+Eric Ortega, snlogin bug.
+Gabor Z. Papp, ease-of-use, pitfalls, rnews conversion, fido issues.
+Steven Flintham, LIST format error, compile-time error.
+Sam Mulvey, compile-time error.
+Zygo Blaxell, bugs and comments too numerous to mention.
+Patrik Rådman, comments, bugs, and suggestions.
+Felix von Leitner, NEWGROUPS date bug.
+Andreas Fuchs, DNEWS problem.
+Bob Pepin, portability issues.
+"vinceh", doc error regarding tcpserver options.
+Matan Ziv-Av, snexpire bug.
+Eric Wick, comments, bug reports and testing.
+Ulf Tigerstedt, bug reports.
+Ray Lischner, bug reports and testing.
+Ralph Corderoy, bug reports, comments and suggestions.
+Hilko Bengen, testing on HP-UX.
+Andras Bali, rnews batches with zero-length articles bug.
+Paul Pluzhnikov, bug reports and suggestions.
+Peter Fichtner, bug reports.
+Christian Garbs, bug reports.
+Dick Streefland
+Chris Niekel
+Sebastian D.B. Krause
+Phil Richards

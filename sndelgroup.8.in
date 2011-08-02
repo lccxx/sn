@@ -1,0 +1,35 @@
+.TH sndelgroup,v!!VERSION!! 8 "Harold Tay" "N.B." \" -*- nroff -*-
+.SH NAME
+sndelgroup \- delete an existing sn newsgroup
+.SH SYNOPSIS
+.B sndelgroup
+.IR newsgroup ...
+.br
+.SH DESCRIPTION
+.B sndelgroup
+deletes the specified newsgroups; i.e. everything under
+.RI !!SNROOT!!/ newsgroup
+after removing the article ID entries in the sn database.
+Do not use the shell command
+.br
+rm -rf
+.RI !!SNROOT!!/ newsgroup
+.br
+because that will leave unreclaimed garbage in the database.
+
+You will need to own !!SNROOT!!  in order to do this.
+
+.SH FILES MODIFIED
+!!SNROOT!!/{.chain,.newsgroup}, newsgroup directory and contents,
+!!SNROOT!!/.ougtoing/news.server.name:port
+
+.SH ENVIRONMENT VARIABLES
+.TP
+.B SNROOT
+If this is set and is not empty, the value is used in place of
+.BR !!SNROOT!! ,
+the default news spool directory.
+
+.SH SEE ALSO
+snnewgroup
+

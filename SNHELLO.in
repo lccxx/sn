@@ -1,0 +1,143 @@
+#!!!BASH!!
+# This default script is kept in !!BINDIR!!, and gets invoked
+# by snget/sngetd for ALL servers.  If you want a special version for
+# just one particular server (for example if a username/password is
+# required), install an edited copy in that servers directory.
+#
+# We are invoked when snget/sngetd opens a connection to a
+# server.  Our purpose is to read the server greeting and log in if
+# required, and exit successfully if all is well.  We must leave the
+# NNTP conversation is a consistent state.
+#
+# When that is done, we take the opportunity (since we now have the
+# NNTP conversation all to ourselves) to upload any articles meant for
+# this server and do some other housekeeping.
+#
+# Invocation environment:
+# Descriptors 6 and 7 open to read and write NNTP, respectively.
+# Current directory is the appropriate server directory (one of
+# !!SNROOT!!/.outgoing/*/).
+# If the server times out, we will be sent SIGALRM from
+# snget/sngetd.
+# These variables will be set:
+# SERVER: name of the server we are talking to
+# PORT: port number of same
+# TIMEOUT: number of seconds of server inactivity before we are
+# sent SIGALRM
+
+ME=`basename $0`
+log () { echo "$ME:$SERVER:$@" >&2; }
+fail () { log "$@"; exit 1; }
+CODE=
+SAID=
+nntp () { [ "x$@" = x ] || echo "$@" >&7; read -r CODE SAID <&6 || exit 1; }
+
+#
+# Logging in and authentication.
+#
+
+authenticate () {
+  nntp "AUTHINFO USER $1"
+  if [ x$CODE != x281 ]; then
+    [ x$CODE = x381 ] && nntp "AUTHINFO PASS `cat password`"
+    [ x$CODE != x281 ] && fail "$SERVER refused us: $CODE $SAID"
+  fi
+}
+
+username=
+[ -f username ] && username=`cat username`
+read -r CODE SAID <&6 || fail "Can't read server greeting"
+case "$CODE" in
+200|201)
+  [ "x$username" != x ] && authenticate "$username"
+  ;;
+480)
+  [ "x$username" = x ] && fail "Don't have a user name to log in with"
+  authenticate "$username"
+  ;;
+*) fail "$SERVER bad greeting:$CODE $SAID"
+  ;;
+esac
+
+#
+# Some INN's want this.  Jim Hague was here.
+#
+nntp "MODE READER"
+
+#
+# Our job is done, we have successfully logged in, so regardless of
+# what happens next we must exit 0.  Note: Caller does not care if
+# we can successfully upload our articles, that is our responsibility.
+#
+
+end () { log "$@" >&2; exit 0; }
+on_exit () { [ -e $tmp ] && rm -f $tmp; [ "x$lockf_proc" != x ] && kill $lockf_proc; }
+
+trap on_exit 0
+
+# Lock the server directory to serialise processing.
+exec 3>.lock || end "Unable to open/create .lock"
+read lockf_proc < <(exec snlockf 3>&3)
+[ "x$lockf_proc" != x ] || exit 0
+
+#
+# Upload outgoing articles.
+#
+
+tmp=+HELLO.$$
+rmcr () { sed -e 's///' -e '/^\.$/d' >$tmp || end "Can't run sed"; }
+
+posts="`echo '$'*`"; [ "x$posts" = 'x$*' ] && posts=
+for art in $posts; do
+  nntp "POST"
+  if [ "x$CODE" = x340 ]; then
+    # Remove unnecessary headers.
+    # Also remove the terminating dot if any (so we can replace it).
+    sed '1,/^$/{
+/^[sS][eE][nN][dD][eE][rR] *:/d
+/^[nN][nN][tT][pP]-[pP][oO][sS][tT][iI][nN][gG]-[hH][oO][sS][tT] *:/d
+/^[bB][yY][tT][eE][sS] *:/d
+/^[lL][iI][nN][eE][sS] *:/d
+}
+/^\.$/d' $art >&7
+    nntp "."
+  fi
+  if [ "x$CODE" != x240 ]; then
+    rmcr <$art;
+    # XXX Problem with LOGNAME if snget started by pppd
+    mail -s "Posting failed ($CODE $SAID)" ${NEWSMASTER:-${LOGNAME:-!!DEFAULT_ADMIN_EMAIL!!}} <$tmp ||
+      end "Can't run mail"
+  fi
+  rm -f $art
+done
+
+#
+# Service any requests.  Add your own stuff here, but remember:
+# 1. Don't touch descriptor 3, because that is your lock.  Otherwise
+#    you can do pretty much anything.
+# 2. You should exit with success, regardless of what went wrong.
+# 3. Use todot() or nntp() or similar to read from the network.
+#    I know it's slow but if you use an external program to read
+#    it could drop bytes, and the alarm trap won't kick in.
+#
+
+todot () { while read -r b; do [ "$b" = "." ] && break; echo "$b"; done <&6; }
+inform () { todot | rmcr; [ -s $tmp ] && sh -c "$*" <$tmp; }
+update () { date '+%y%m%d %H%M%S' >.t && mv .t .last-list && rm -f $1; }
+cmd= ; getcmd () { [ -f $1 ] && cmd="`head -1 $1`" && [ "x$cmd" != x ]; }
+
+if getcmd request-list; then
+  nntp "LIST NEWSGROUPS"
+  [ x$CODE != x215 ] && nntp "LIST"
+  [ x$CODE != x215 ] && end "Can't request list:$CODE $SAID"
+  inform "$cmd" || end "Unable to forward results"
+  update request-list
+elif getcmd request-newgroups; then
+  date=`cat .last-list 2>/dev/null`
+  nntp "NEWGROUPS ${date:-990101 000000}"
+  [ x$CODE != x231 ] && end "Can't request newgroups:$CODE $SAID"
+  inform "$cmd" || { [ -s $tmp ] && end "Unable to forward results"; }
+  update request-newgroups
+fi
+
+: script done
