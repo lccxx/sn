@@ -8,29 +8,18 @@
 
 timeout=20  # seconds!
 
-SNNTPD=/usr/local/sbin/snntpd 
-
-#users (array)
-users=(user1 user2 user3)
-
-#corresponding passwords (must not be shorter than users array!)
-passwords=(password1 password2 password3)
+SNNTPD=/usr/sbin/snntpd 
 
 # end settings
 
 checkuser () { 
+  ## check against courier userdb with newspw set (hmac-md5)
   user_count=${#users[@]}
-  index=0
-  while [ "$index" -lt "$user_count" ] ; do
-    if [ "${users[$index]}" = "$1" ] ; then
-      if [ "${passwords[$index]}" = "$2" ] ; then
-        return 0
-      else
-        return 1
-      fi
-    fi
-    let "index = $index + 1"
-  done
+
+  # user $1 pass $2 
+  crypt=`echo $2 | userdbpw -hmac-md5`
+  grep -Pq "^$1.*newspw=$crypt" /etc/courier/userdb && return 0
+
   return 1
 }
 
@@ -45,7 +34,6 @@ while read -t $timeout currentline ; do
   lenm1=`expr ${#currentline} - 1`
   currentline=${currentline:0:$lenm1}
   switchpart=`echo ${currentline:0:14} | tr [a-z] [A-Z]`
-  #switchpart=`echo ${currentline:0:14} | tr [:lower:] [:upper:]`
   case "$switchpart" in
     "LIST EXTENSIONS")
 
@@ -76,9 +64,11 @@ while read -t $timeout currentline ; do
 
       if checkuser $haveuser $havepass ; then
         printf "281 Authorization accepted\r\n"
+	# check if we are in the list of POSTERS for that group!
         export POSTING_OK=1 # is this necessary?
-
-        exec $SNNTPD -S logger -p news.info
+	export VERIFIED_SENDER=$haveuser
+	echo "SNNTP $VERIFIED_SENDER" >> /tmp/v
+	exec $SNNTPD -S logger -p news.info
       else
         printf "482 Authorization rejected $msg\r\n"
       fi
